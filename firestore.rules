@@ -1,0 +1,39 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isLoggedIn() {
+      return request.auth != null;
+    }
+
+    // users Collection
+    match /users/{userId} {
+      allow read: if isLoggedIn() && (request.auth.uid == userId || 
+        (resource.data.isVerifiedSensei == true && resource.data.offersPaidCoaching == true));
+
+      allow update: if isLoggedIn() && request.auth.uid == userId &&
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['coins', 'reservedCoins', 'coachingEarnings']);
+
+      allow write: if false;
+    }
+
+    // coachingRequests Collection
+    match /coachingRequests/{requestId} {
+      allow read: if isLoggedIn() && 
+        (resource.data.playerId == request.auth.uid || resource.data.senseiId == request.auth.uid);
+
+      allow write: if false;
+    }
+
+    // platform collection (optional fee tracking)
+    match /platform/{document=**} {
+      allow read, write: if false;
+    }
+
+    // ai_advice (Build-Advisor history)
+    match /ai_advice/{document=**} {
+      allow read: if isLoggedIn() && resource.data.uid == request.auth.uid;
+      allow write: if false;
+    }
+  }
+}
