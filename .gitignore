@@ -1,25 +1,11 @@
-# Node dependencies
 node_modules/
-functions/node_modules/
-
-# Firebase service account keys and local credentials
-firebase-adminsdk.json
-firebase-service-account.json
-serviceAccountKey.json
-*.service-account.json
-
-# Environment files and secrets
 .env
 .env.*
-!.env.example
-
-# Firebase local files and logs
-.firebase/
+*.local
+serviceAccount*.json
 firebase-debug.log
 firestore-debug.log
 ui-debug.log
-
-# OS/editor files
-.DS_Store
-.vscode/
-.idea/
+.firebase/
+__pycache__/
+*.pyc

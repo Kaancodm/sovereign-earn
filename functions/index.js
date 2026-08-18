@@ -1,11 +1,18 @@
-const functions = require("firebase-functions");
+/**
+ * Sovereign Earn – Cloud Functions (Node 20)
+ * Projekt: sovereign-bdb76
+ */
+
 const admin = require("firebase-admin");
 
 admin.initializeApp();
 
-exports.healthCheck = functions.https.onRequest((req, res) => {
-  res.status(200).json({
-    ok: true,
-    service: "sovereign-earn-functions"
-  });
-});
+// Sensei Coaching Flow
+const coaching = require("./coaching");
+exports.acceptCoachingRequest = coaching.acceptCoachingRequest;
+exports.completeCoachingRequest = coaching.completeCoachingRequest;
+exports.declineCoachingRequest = coaching.declineCoachingRequest;
+exports.cancelCoachingRequest = coaching.cancelCoachingRequest;
+
+// TODO: Bestehende Functions hier exportieren (Postbacks, Auszahlungen, askBuildAdvisor).
+// Siehe Handover-Dokument: 07_Firebase_askBuildAdvisor_and_Sensei.js

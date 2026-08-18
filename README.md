@@ -1,65 +1,66 @@
-# Sovereign Earn v2
+# Sovereign Earn
 
-**AI-First Companion + Sensei-Coaching for MU: Dark Epoch (DE/RU)**
+Gamifizierte Get-Paid-To (GPT) PWA für Mobile-MMORPG-Spieler (Fokus: MU: Dark Epoch).
 
-Live: https://sovereign-bdb76.web.app
+**Live:** https://sovereign-bdb76.web.app
+**Firebase-Projekt:** `sovereign-bdb76` (Blaze-Plan)
 
-## Vision
+## Stack
 
-Sovereign Earn is the leading platform for ambitious mobile MMORPG players (especially MU: Dark Epoch) in German and Russian speaking regions - with strong AI companion, quality Sensei coaching, and the ability to earn coins on the side.
+- Firebase Hosting + Cloud Functions (Node 20, Functions v2)
+- Firestore (fail-closed Rules für Coins)
+- Postbacks: Pollfish, BitLabs, CPALead
+- Auszahlungen mit 24h-Sicherheitswarteschlange
+- WorkAI (A2A-Agent auf Oracle VPS) für Build-Advisor & Sensei-Matching
 
-## Three Pillars
-
-1. **AI-First Companion** - Build optimization, skill priorities, gear evolution, daily routines (DE + RU)
-2. **Sensei & Coaching** - Verified mentors, 10% lifetime provision + paid sessions (coins)
-3. **Earn System** - Offerwalls (Pollfish, BitLabs, CPALead), coins for payout or coaching
-
-## Tech Stack
-
-- Firebase Hosting + Cloud Functions (Node 20)
-- Firestore (fail-closed rules for coins)
-- WorkAI A2A (JSON-RPC 2.0) for AI skills
-- PWA (monolithic index.html)
-
-## Repository Structure
+## Struktur
 
 ```
-sovereign-earn/
-├── functions/
-│   └── coaching.js        # Coaching Cloud Functions (accept, complete, reject, cancel, timeout)
-├── docs/
-│   └── COACHING_STATUS.md # Coaching status machine documentation
-├── firestore.rules        # Firestore security rules
-└── README.md
+functions/        Cloud Functions (Node 20)
+  index.js        Exporte
+  coaching.js     Sensei-Coaching-Flow (accept / complete / decline / cancel)
+workai/           WorkAI A2A-Server (Oracle VPS, Python/FastAPI)
+  a2a_server.py   JSON-RPC Endpoint + Agent Card
 ```
 
-## Coaching Flow (Quick)
+## Sicherheitsregeln (nicht verhandelbar)
 
-| Status | Description |
-|--------|-------------|
-| `pending` | Request created, coins reserved |
-| `accepted` | Sensei accepted, 7-day timeout running |
-| `completed` | Coaching done, coins transferred (10% platform fee) |
-| `rejected` | Sensei rejected, coins released |
-| `cancelled` | Player cancelled or timeout, coins released |
+- Coins werden **niemals** vom Client geschrieben.
+- Alle Coin-Änderungen nur über Admin-SDK + Firestore-Transaktionen.
+- Secrets: `WORKAI_API_KEY`, `WORKAI_A2A_ENDPOINT` (via `firebase functions:secrets:set`).
 
-**Functions:** `acceptCoachingRequest`, `completeCoachingRequest`, `rejectCoachingRequest`, `cancelCoachingRequest`, `timeoutCoachingRequests`
+## Deploy
 
-## Next Steps (P0)
+```bash
+firebase use sovereign-bdb76
+firebase deploy --only functions
+```
 
-1. Final test postbacks + payouts
-2. Deploy + test `askBuildAdvisor` (mu-build-advisor)
-3. Extend Sensei profile with `offersPaidCoaching`
-4. Win first 10-15 DE/RU Senseis (templates available)
-5. End-to-end test coaching request flow
+## Coaching-Flow (Datenmodell)
 
-## Security
+`coachingRequests/{requestId}`:
 
-- Coins only modifiable server-side (Admin SDK)
-- Firestore rules: client cannot write `coins`, `reservedCoins`
-- `coachingRequests` readable only by involved player/sensei
-- API key rotation every 90 days, secrets in Firebase
+| Feld | Typ | Beschreibung |
+|---|---|---|
+| `studentId` | string | UID des Schülers |
+| `senseiId` | string | UID des Sensei |
+| `priceCoins` | number | Preis in Coins (> 0) |
+| `status` | string | `pending` → `accepted` → `completed` / `declined` / `cancelled` |
+| `escrowCoins` | number | gehaltene Coins während `accepted` |
+| `createdAt` / `acceptedAt` / `completedAt` | timestamp | serverTimestamp |
 
-## License
+`users/{uid}.coinBalance` (number) — Coin-Kontostand. Falls dein Feld anders heißt: `COIN_BALANCE_FIELD` in `functions/coaching.js` anpassen.
 
-Private - all rights reserved.
+**Ablauf:**
+1. Client erstellt Request (`pending`, kein Geld bewegt sich)
+2. `acceptCoachingRequest` (Sensei) → Coins des Schülers gehen in Escrow
+3. `completeCoachingRequest` (Schüler bestätigt Session) → 90 % an Sensei, 10 % Plattformgebühr
+4. Alternativ: `declineCoachingRequest` (vor Annahme, kostenlos) oder `cancelCoachingRequest` (nach Annahme, voller Refund)
+
+## Nächste Schritte (aus 30-Tage-Backlog)
+
+1. Postbacks + Auszahlungen final testen
+2. `askBuildAdvisor` deployen und testen
+3. Sensei-Profil um `offersPaidCoaching` erweitern
+4. Erste 10–15 DE/RU-Senseis gewinnen
+5. WorkAI (Oracle VPS) final anbinden
