@@ -34,7 +34,10 @@ jobs:
           printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/firebase-service-account.json"
           export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/firebase-service-account.json"
           firebase use sovereign-bdb76
-          firebase deploy --only functions
+          # Gezielter Deploy: verhindert, dass der non-interaktive Run wegen
+          # bestehender Funktionen im Projekt (z. B. pollfishPostback) abbricht.
+          # Neue Exports aus functions/index.js hier ergaenzen.
+          firebase deploy --only functions:acceptCoachingRequest,functions:completeCoachingRequest,functions:declineCoachingRequest,functions:cancelCoachingRequest
 
       - name: Deploy Firestore Rules
         env:
