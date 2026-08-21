@@ -15,9 +15,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Setup Node.js 24
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: "24"
       - name: CI Checks
@@ -32,9 +32,9 @@ jobs:
     environment: staging
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Setup Node.js 24
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: "24"
       - name: Firebase CLI installieren
@@ -51,6 +51,19 @@ jobs:
           printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$SA"
           node -e 'JSON.parse(require("fs").readFileSync(process.argv[1],"utf8"))' "$SA"
           echo "GOOGLE_APPLICATION_CREDENTIALS=$SA" >> "$GITHUB_ENV"
+      - name: Firebase/IAM Preflight
+        env:
+          FIREBASE_PROJECT_ID: ${{ inputs.firebase_project_id }}
+        run: |
+          set -euo pipefail
+          echo "Prüfe Zugriff auf Cloud Functions für $FIREBASE_PROJECT_ID ..."
+          if ! firebase functions:list --project "$FIREBASE_PROJECT_ID" --non-interactive >/tmp/firebase-functions-list.log 2>&1; then
+            cat /tmp/firebase-functions-list.log
+            echo ""
+            echo "STAGING BLOCKER: Der GitHub-Service-Account kann die Cloud-Functions des Projekts nicht auflisten."
+            echo "Benötigt: Cloud Functions Admin/Developer plus Service Account User für die Runtime-/Build-Service-Accounts."
+            exit 1
+          fi
       - name: Cloud Functions deployen
         env:
           FIREBASE_PROJECT_ID: ${{ inputs.firebase_project_id }}
