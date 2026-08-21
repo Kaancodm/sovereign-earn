@@ -1,9 +1,6 @@
 name: Firebase Staging-Deploy
 
-# SICHERHEIT: Es gibt KEINEN push/PR-Auto-Deploy mehr.
-# Deployment passiert ausschließlich manuell über "Run workflow"
-# im GitHub-UI und erfordert ein explizites Staging-Environment
-# mit dem Secret FIREBASE_SERVICE_ACCOUNT.
+# Sicherheitsprinzip: nur manueller Staging-Deploy, niemals bei push/PR.
 on:
   workflow_dispatch:
     inputs:
@@ -19,13 +16,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Setup Node.js 20
+      - name: Setup Node.js 22
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
-
-      - name: CI Checks (npm test + check:staging)
+          node-version: "22"
+      - name: CI Checks
         run: |
           npm test
           npm run check:staging
@@ -38,19 +33,15 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Setup Node.js 20
+      - name: Setup Node.js 22
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
-
+          node-version: "22"
       - name: Firebase CLI installieren
-        run: npm install -g firebase-tools
-
+        run: npm install -g firebase-tools@latest
       - name: Functions-Dependencies installieren
         working-directory: functions
         run: npm install
-
       - name: Firebase Authentifizierung vorbereiten
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
@@ -58,45 +49,23 @@ jobs:
           set -euo pipefail
           SA="$RUNNER_TEMP/firebase-service-account.json"
           printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$SA"
-          node -e 'JSON.parse(require("fs").readFileSync(process.argv[1],"utf8"))' "$SA" \
-            || { echo "::error::FIREBASE_SERVICE_ACCOUNT ist kein gueltiges JSON"; exit 1; }
-          export GOOGLE_APPLICATION_CREDENTIALS="$SA"
+          node -e 'JSON.parse(require("fs").readFileSync(process.argv[1],"utf8"))' "$SA"
           echo "GOOGLE_APPLICATION_CREDENTIALS=$SA" >> "$GITHUB_ENV"
-
-      - name: Legacy Gen1-Postbacks vor v2-Migration entfernen
-        env:
-          FIREBASE_PROJECT_ID: ${{ inputs.firebase_project_id }}
-        run: |
-          set -euo pipefail
-          # Firebase unterstützt kein direktes Gen1 -> Gen2 Upgrade unter
-          # demselben Namen. Nur wenn die historischen Funktionen existieren,
-          # werden sie entfernt; Auth-/CLI-Fehler brechen den Workflow ab.
-          FUNCTIONS_JSON="$RUNNER_TEMP/firebase-functions.json"
-          firebase functions:list --project "$FIREBASE_PROJECT_ID" --json > "$FUNCTIONS_JSON"
-
-          if grep -q '"pollfishPostback"' "$FUNCTIONS_JSON"; then
-            firebase functions:delete pollfishPostback --project "$FIREBASE_PROJECT_ID" --region us-central1 --force
-          fi
-
-          if grep -q '"bitlabsPostback"' "$FUNCTIONS_JSON"; then
-            firebase functions:delete bitlabsPostback --project "$FIREBASE_PROJECT_ID" --region us-central1 --force
-          fi
-
       - name: Cloud Functions deployen
         env:
           FIREBASE_PROJECT_ID: ${{ inputs.firebase_project_id }}
         run: |
           set -euo pipefail
+          # V2-Postbacks haben bewusst neue Namen. Dadurch wird eine bestehende
+          # Gen1-Funktion niemals implizit gelöscht oder migriert.
           firebase deploy --project "$FIREBASE_PROJECT_ID" --non-interactive --force \
-            --only functions:acceptCoachingRequest,functions:completeCoachingRequest,functions:declineCoachingRequest,functions:cancelCoachingRequest,functions:createCoachingRequest,functions:askBuildAdvisor,functions:updateSenseiProfile,functions:ensureUserProfile,functions:requestAccountDeletion,functions:healthCheck,functions:pollfishPostback,functions:bitlabsPostback
-
+            --only functions:acceptCoachingRequest,functions:completeCoachingRequest,functions:declineCoachingRequest,functions:cancelCoachingRequest,functions:createCoachingRequest,functions:askBuildAdvisor,functions:updateSenseiProfile,functions:ensureUserProfile,functions:requestAccountDeletion,functions:healthCheck,functions:pollfishPostbackV2,functions:bitlabsPostbackV2
       - name: Firestore Rules deployen
         env:
           FIREBASE_PROJECT_ID: ${{ inputs.firebase_project_id }}
         run: |
           set -euo pipefail
           firebase deploy --project "$FIREBASE_PROJECT_ID" --non-interactive --force --only firestore:rules
-
       - name: Hosting deployen
         env:
           FIREBASE_PROJECT_ID: ${{ inputs.firebase_project_id }}
