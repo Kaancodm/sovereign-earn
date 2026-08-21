@@ -9,3 +9,17 @@ ui-debug.log
 .firebase/
 __pycache__/
 *.pyc
+# Anthropic Skills – generierte Artefakte (nicht einchecken)
+.claude/skills/*/*.docx
+.claude/skills/*/*.docx.tmp
+.claude/skills/*/*.pdf
+.claude/skills/*/*.pptx
+.claude/skills/*/*.xlsx
+.claude/skills/*/output/
+.claude/skills/*/dist/
+.claude/skills/*/build/
+.claude/skills/*/node_modules/
+.claude/skills/*/__pycache__/
+.claude/skills/*/*.pyc
+.claude/skills/*/.venv/
+.claude/skills/webapp-testing/.playwright-mcp/

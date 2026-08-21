@@ -1,0 +1,17 @@
+{
+  "name": "sovereign-skills",
+  "owner": {
+    "name": "Sovereign Earn (Kaancodm)",
+    "url": "https://github.com/Kaancodm/sovereign-earn"
+  },
+  "plugins": [
+    {
+      "name": "anthropic-agent-skills",
+      "description": "Anthropics Skills Plugin (19 Skills: frontend-design, webapp-testing, docx/pdf/pptx/xlsx, mcp-builder, etc.)",
+      "source": "./.claude/skills",
+      "homepage": "https://github.com/anthropics/skills",
+      "version": "1.0.0",
+      "license": "Mixed (Apache 2.0 + Source-available; siehe LICENSE.txt je Skill)"
+    }
+  ]
+}

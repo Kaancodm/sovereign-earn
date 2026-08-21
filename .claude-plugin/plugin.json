@@ -1,0 +1,30 @@
+{
+  "name": "anthropic-agent-skills",
+  "version": "1.0.0",
+  "description": "Bundled Anthropic Agent Skills – lädt dynamisch beim Coding mit Claude Code (Frontend-Design, WebApp-Testing, Dokument-Generierung).",
+  "author": {
+    "name": "Anthropic (original)",
+    "url": "https://github.com/anthropics/skills"
+  },
+  "skills": [
+    {"name": "frontend-design",       "path": ".claude/skills/frontend-design"},
+    {"name": "webapp-testing",        "path": ".claude/skills/webapp-testing"},
+    {"name": "web-artifacts-builder", "path": ".claude/skills/web-artifacts-builder"},
+    {"name": "skill-creator",         "path": ".claude/skills/skill-creator"},
+    {"name": "theme-factory",         "path": ".claude/skills/theme-factory"},
+    {"name": "brand-guidelines",      "path": ".claude/skills/brand-guidelines"},
+    {"name": "canvas-design",         "path": ".claude/skills/canvas-design"},
+    {"name": "algorithmic-art",       "path": ".claude/skills/algorithmic-art"},
+    {"name": "slack-gif-creator",     "path": ".claude/skills/slack-gif-creator"},
+    {"name": "docx",                  "path": ".claude/skills/docx"},
+    {"name": "pdf",                   "path": ".claude/skills/pdf"},
+    {"name": "pptx",                  "path": ".claude/skills/pptx"},
+    {"name": "xlsx",                  "path": ".claude/skills/xlsx"},
+    {"name": "doc-coauthoring",       "path": ".claude/skills/doc-coauthoring"},
+    {"name": "internal-comms",        "path": ".claude/skills/internal-comms"},
+    {"name": "mcp-builder",           "path": ".claude/skills/mcp-builder"},
+    {"name": "claude-api",            "path": ".claude/skills/claude-api"},
+    {"name": "academy-guide",         "path": ".claude/skills/academy-guide"},
+    {"name": "discernment-nudge",     "path": ".claude/skills/discernment-nudge"}
+  ]
+}
