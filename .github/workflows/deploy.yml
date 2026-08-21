@@ -56,27 +56,37 @@ jobs:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           FIREBASE_PROJECT_ID: ${{ inputs.firebase_project_id }}
         run: |
-          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/firebase-service-account.json"
-          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/firebase-service-account.json" >> "$GITHUB_ENV"
-          firebase use "$FIREBASE_PROJECT_ID"
-          firebase deploy --only functions:acceptCoachingRequest,functions:completeCoachingRequest,functions:declineCoachingRequest,functions:cancelCoachingRequest,functions:createCoachingRequest,functions:askBuildAdvisor,functions:updateSenseiProfile,functions:ensureUserProfile,functions:requestAccountDeletion,functions:healthCheck,functions:pollfishPostback,functions:bitlabsPostback
+          set -euo pipefail
+          SA="$RUNNER_TEMP/firebase-service-account.json"
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$SA"
+          node -e 'JSON.parse(require("fs").readFileSync(process.argv[1],"utf8"))' "$SA" \
+            || { echo "::error::FIREBASE_SERVICE_ACCOUNT ist kein gueltiges JSON"; exit 1; }
+          export GOOGLE_APPLICATION_CREDENTIALS="$SA"
+          firebase deploy --project "$FIREBASE_PROJECT_ID" --non-interactive --force \
+            --only functions:acceptCoachingRequest,functions:completeCoachingRequest,functions:declineCoachingRequest,functions:cancelCoachingRequest,functions:createCoachingRequest,functions:askBuildAdvisor,functions:updateSenseiProfile,functions:ensureUserProfile,functions:requestAccountDeletion,functions:healthCheck,functions:pollfishPostback,functions:bitlabsPostback
 
       - name: Firestore Rules deployen
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           FIREBASE_PROJECT_ID: ${{ inputs.firebase_project_id }}
         run: |
-          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/firebase-service-account.json"
-          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/firebase-service-account.json" >> "$GITHUB_ENV"
-          firebase use "$FIREBASE_PROJECT_ID"
-          firebase deploy --only firestore:rules
+          set -euo pipefail
+          SA="$RUNNER_TEMP/firebase-service-account.json"
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$SA"
+          node -e 'JSON.parse(require("fs").readFileSync(process.argv[1],"utf8"))' "$SA" \
+            || { echo "::error::FIREBASE_SERVICE_ACCOUNT ist kein gueltiges JSON"; exit 1; }
+          export GOOGLE_APPLICATION_CREDENTIALS="$SA"
+          firebase deploy --project "$FIREBASE_PROJECT_ID" --non-interactive --force --only firestore:rules
 
       - name: Hosting deployen
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           FIREBASE_PROJECT_ID: ${{ inputs.firebase_project_id }}
         run: |
-          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/firebase-service-account.json"
-          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/firebase-service-account.json" >> "$GITHUB_ENV"
-          firebase use "$FIREBASE_PROJECT_ID"
-          firebase deploy --only hosting
+          set -euo pipefail
+          SA="$RUNNER_TEMP/firebase-service-account.json"
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$SA"
+          node -e 'JSON.parse(require("fs").readFileSync(process.argv[1],"utf8"))' "$SA" \
+            || { echo "::error::FIREBASE_SERVICE_ACCOUNT ist kein gueltiges JSON"; exit 1; }
+          export GOOGLE_APPLICATION_CREDENTIALS="$SA"
+          firebase deploy --project "$FIREBASE_PROJECT_ID" --non-interactive --force --only hosting
