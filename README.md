@@ -64,7 +64,7 @@ Nach erfolgreichem Staging-Test können die alten Gen-1-Funktionen kontrolliert 
 
 ## Staging-Deploy
 
-- GitHub Actions: **`workflow_dispatch`** בלבד – kein Auto-Deploy bei push/PR.
+- GitHub Actions: **`workflow_dispatch`** – kein Auto-Deploy bei push/PR.
 - GitHub Environment: `staging`
 - Benötigtes Secret: `FIREBASE_SERVICE_ACCOUNT`
 - Runtime: Node.js 22
