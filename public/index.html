@@ -1,30 +1,830 @@
 <!doctype html>
 <html lang="de">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Sovereign Earn</title>
-    <style>
-      :root { color-scheme: dark; }
-      body {
-        margin: 0;
-        min-height: 100vh;
-        display: grid;
-        place-items: center;
-        background: #0b0d12;
-        color: #e8eaf0;
-        font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-        text-align: center;
-        padding: 24px;
-      }
-      h1 { font-size: 1.6rem; margin: 0 0 8px; letter-spacing: -0.01em; }
-      p { margin: 0; color: #9aa2b4; font-size: 0.95rem; }
-    </style>
-  </head>
-  <body>
-    <main>
-      <h1>Sovereign Earn</h1>
-      <p>Deployment aktiv – Frontend folgt.</p>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#1a1a2e" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="description" content="Sovereign Earn – MU: Dark Epoch Companion, Earn Portal & Q12 P2P Marketplace" />
+  <title>Sovereign Earn – MU: Dark Epoch Companion</title>
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="icon" href="/icons/icon-192.png" sizes="192x192" />
+  <link rel="stylesheet" href="/styles.css" />
+  <!-- Firebase SDK (compat) – lädt im Offline-/Demo-Fall nicht und die App
+       fällt dann automatisch auf den lokalen Demo-Modus zurück -->
+  <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-functions-compat.js"></script>
+  <script defer src="/firebase-config.js"></script>
+  <script defer src="/app.js"></script>
+</head>
+<body>
+
+  <!-- Mobile Menu Toggle -->
+  <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Menü öffnen">☰</button>
+
+  <!-- Overlay Toggle (Second Screen) -->
+  <button class="overlay-toggle" id="overlayToggle">🪟 Boss-Radar</button>
+
+  <div class="app-layout">
+
+    <!-- ===== SIDEBAR ===== -->
+    <nav class="sidebar" id="sidebar" role="navigation">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">
+          ⚔️ SOVEREIGN<br />
+          <small>MU: Dark Epoch · Earn &amp; Companion</small>
+        </div>
+      </div>
+
+      <!-- Universe Selector -->
+      <div class="universe-switcher">
+        <label>🌌 Universum</label>
+        <select id="universeSelect" class="universe-select" aria-label="MMO-Universum wählen">
+          <option value="mu-dark-epoch">MU: Dark Epoch</option>
+          <option value="diablo-immortal">Diablo Immortal</option>
+          <option value="black-desert">Black Desert Mobile</option>
+          <option value="ragnarok-origin">Ragnarok Origin</option>
+          <option value="q12-network">🌐 Q12-Netzwerk</option>
+        </select>
+      </div>
+
+      <!-- Navigation -->
+      <ul class="nav-list">
+        <li class="nav-item active" data-tab="dashboard"><span class="nav-icon">📊</span> Dashboard</li>
+        <li class="nav-item" data-tab="dailies"><span class="nav-icon">📅</span> Dailies &amp; Boss-Radar <span class="nav-badge">LIVE</span></li>
+        <li class="nav-item" data-tab="chaos-forge"><span class="nav-icon">🔨</span> Chaos-Schmiede +15</li>
+        <li class="nav-item" data-tab="stat-minmax"><span class="nav-icon">📈</span> Stat-Min-Maxer</li>
+        <li class="nav-item" data-tab="earn"><span class="nav-icon">💰</span> Earn-Portal <span class="nav-badge" id="earnBadge">+0</span></li>
+        <li class="nav-item" data-tab="payouts"><span class="nav-icon">💳</span> Auszahlungen</li>
+        <li class="nav-item" data-tab="marketplace"><span class="nav-icon">🏪</span> Q12 P2P Marktplatz</li>
+        <li class="nav-item" data-tab="agents"><span class="nav-icon">🤖</span> 5-Agenten OODA</li>
+        <li class="nav-item" data-tab="settings"><span class="nav-icon">⚙️</span> Einstellungen &amp; DSGVO</li>
+      </ul>
+
+      <!-- Wallet Status -->
+      <div style="padding:12px 16px;border-top:1px solid var(--border-color);font-size:0.75rem;">
+        <div style="display:flex;justify-content:space-between;color:var(--text-muted);">
+          <span>💰 Wallet</span>
+          <span style="color:var(--gold);font-weight:700;font-family:var(--font-mono);" id="walletDisplay">0 Coins</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;color:var(--text-muted);margin-top:4px;">
+          <span>👤 Status</span>
+          <span id="authStatusDisplay" style="color:var(--cyan);">Nicht angemeldet</span>
+        </div>
+      </div>
+    </nav>
+
+    <!-- ===== MAIN CONTENT ===== -->
+    <main class="main-content">
+
+      <!-- ====== TAB: DASHBOARD ====== -->
+      <section id="tab-dashboard" class="tab-content active">
+        <div class="page-header">
+          <div>
+            <h1>🔱 <span class="highlight">Sovereign</span> Command Center</h1>
+            <p>Dein Multi-Game Companion, Earn-Portal &amp; Q12-P2P-Marktplatz</p>
+          </div>
+          <div class="header-actions">
+            <button class="btn btn-gold btn-sm" id="loginBtn">🔑 Anmelden</button>
+          </div>
+        </div>
+
+        <div class="grid-4" style="margin-bottom:24px;">
+          <div class="stat-card">
+            <span class="stat-label">💰 Guthaben</span>
+            <span class="stat-value gold" id="dashCoins">0</span>
+            <span class="stat-change up">+0 heute</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">📅 Aktive Events</span>
+            <span class="stat-value cyan" id="dashEvents">4</span>
+            <span class="stat-change">Boss-Radar aktiv</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">🔨 Schmiede-Versuche</span>
+            <span class="stat-value" id="dashForge">0</span>
+            <span class="stat-change up">+15 bereit</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">🏪 Marktplatz</span>
+            <span class="stat-value gold" id="dashMarket">0</span>
+            <span class="stat-change">Angebote live</span>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">⚡ Boss-Radar Live</span>
+              <span class="badge badge-crimson">LIVE</span>
+            </div>
+            <div id="dashBossList">
+              <div class="event-item">
+                <span class="event-time" id="bossTimer1">--:--:--</span>
+                <span class="event-name">🛡️ Bloody Angel (EU-103)</span>
+                <span class="badge badge-gold">Boss</span>
+              </div>
+              <div class="event-item">
+                <span class="event-time" id="bossTimer2">--:--:--</span>
+                <span class="event-name">👑 Lord Silvester (EU-104)</span>
+                <span class="badge badge-gold">Boss</span>
+              </div>
+              <div class="event-item">
+                <span class="event-time" id="bossTimer3">--:--:--</span>
+                <span class="event-name">🔥 Bloody Angel (EU-105)</span>
+                <span class="badge badge-gold">Boss</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">🤖 Sensei Draco</span>
+              <span class="badge badge-green">Online</span>
+            </div>
+            <p style="color:var(--text-secondary);font-size:0.85rem;margin-bottom:12px;">
+              Dein KI-Begleiter für Builds, Events &amp; Coaching.
+            </p>
+            <div style="display:flex;gap:8px;">
+              <input type="text" id="dashQuickChat" placeholder="Frage Draco…" style="flex:1;" />
+              <button class="btn btn-gold btn-sm" id="dashQuickChatBtn">Fragen</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====== TAB: DAILIES & BOSS-RADAR ====== -->
+      <section id="tab-dailies" class="tab-content">
+        <div class="page-header">
+          <div>
+            <h1>📅 <span class="highlight">Dailies</span> &amp; Live Boss-Radar</h1>
+            <p>Sekundengenaue Countdowns für Events, Bosse &amp; Resets</p>
+          </div>
+          <div class="header-actions">
+            <button class="btn btn-cyan btn-sm" id="dailiesRefreshBtn">🔄 Neu laden</button>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">👑 Boss-Spawn-Timer</span>
+              <span class="badge badge-crimson">Echtzeit</span>
+            </div>
+            <div id="bossList">
+              <div class="event-item">
+                <span class="event-time" id="bossTimer1-detail">--:--:--</span>
+                <span class="event-name">🛡️ Bloody Angel (EU-103)</span>
+                <span class="badge badge-gold">+50 Coins</span>
+              </div>
+              <div class="event-item">
+                <span class="event-time" id="bossTimer2-detail">--:--:--</span>
+                <span class="event-name">👑 Lord Silvester (EU-104)</span>
+                <span class="badge badge-gold">+80 Coins</span>
+              </div>
+              <div class="event-item">
+                <span class="event-time" id="bossTimer3-detail">--:--:--</span>
+                <span class="event-name">🔥 Bloody Angel (EU-105)</span>
+                <span class="badge badge-gold">+50 Coins</span>
+              </div>
+              <div class="event-item">
+                <span class="event-time" id="bossTimer4">--:--:--</span>
+                <span class="event-name">🌑 Dark Lord (EU-101)</span>
+                <span class="badge badge-crimson">+120 Coins</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">📋 Tägliche Quests</span>
+              <span class="badge badge-cyan">Täglich</span>
+            </div>
+            <div id="dailyQuestList">
+              <div class="event-item">
+                <span class="event-time"><input type="checkbox" class="daily-check" data-quest="dl" /></span>
+                <span class="event-name">🔑 Täglich einloggen</span>
+                <span class="badge badge-gold">+10 Coins</span>
+              </div>
+              <div class="event-item">
+                <span class="event-time"><input type="checkbox" class="daily-check" data-quest="bc" /></span>
+                <span class="event-name">⚔️ Bloody Castle (1x)</span>
+                <span class="badge badge-gold">+25 Coins</span>
+              </div>
+              <div class="event-item">
+                <span class="event-time"><input type="checkbox" class="daily-check" data-quest="cf" /></span>
+                <span class="event-name">🔨 Chaos-Schmiede (3 Versuche)</span>
+                <span class="badge badge-gold">+15 Coins</span>
+              </div>
+              <div class="event-item">
+                <span class="event-time"><input type="checkbox" class="daily-check" data-quest="gc" /></span>
+                <span class="event-name">🏛️ Gilden-Check-in</span>
+                <span class="badge badge-gold">+20 Coins</span>
+              </div>
+              <div class="event-item">
+                <span class="event-time"><input type="checkbox" class="daily-check" data-quest="sv" /></span>
+                <span class="event-name">📊 Umfrage abschließen</span>
+                <span class="badge badge-cyan">+5 Coins</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:20px;">
+          <div class="card-header">
+            <span class="card-title">⏰ Reset-Zeiten</span>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;">
+            <div class="stat-card">
+              <span class="stat-label">Daily Reset</span>
+              <span class="stat-value gold" id="dailyResetTimer">--:--:--</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">Weekly Reset</span>
+              <span class="stat-value gold" id="weeklyResetTimer">--:--:--</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">Boss-Respawn</span>
+              <span class="stat-value" id="bossRespawnTimer">--:--:--</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====== TAB: CHAOS-SCHMIEDE +15 ====== -->
+      <section id="tab-chaos-forge" class="tab-content">
+        <div class="page-header">
+          <div>
+            <h1>🔨 <span class="highlight">Chaos-Schmiede</span> +15</h1>
+            <p>Goblin-Amboss mit echten Veredelungs-Quoten</p>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="forge-container">
+              <div class="forge-anvil" id="forgeAnvil">🔨</div>
+              <div class="forge-item-level" id="forgeLevel">+0</div>
+              <div class="forge-item-name" id="forgeName">Drachen-Sturmspeer</div>
+              <div class="forge-probability" id="forgeProbability">75.0%</div>
+              <div class="forge-stats">
+                <div class="forge-stat">
+                  <span class="label">Versuche</span>
+                  <span class="value" id="forgeAttempts">0</span>
+                </div>
+                <div class="forge-stat">
+                  <span class="label">Erfolge</span>
+                  <span class="value" id="forgeSuccesses">0</span>
+                </div>
+                <div class="forge-stat">
+                  <span class="label">Fehlschläge</span>
+                  <span class="value" id="forgeFails">0</span>
+                </div>
+              </div>
+              <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+                <button class="btn btn-gold btn-lg" id="forgeBtn">🔨 Schmieden</button>
+                <button class="btn btn-sm" id="forgeResetBtn">🔄 Zurücksetzen</button>
+              </div>
+              <div style="margin-top:16px;font-size:0.75rem;color:var(--text-muted);">
+                🛡️ Schutzrollen: <span id="forgeScrolls">3</span> &nbsp;|&nbsp; ⚡ Glücksrollen: <span id="forgeLuckyScrolls">1</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">📊 Veredelungs-Quoten</span>
+            </div>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr><th>Stufe</th><th>Erfolgsrate</th><th>Empfehlung</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>+0 → +1</td><td style="color:#22c55e;">95%</td><td>Immer</td></tr>
+                  <tr><td>+1 → +2</td><td style="color:#22c55e;">90%</td><td>Immer</td></tr>
+                  <tr><td>+2 → +3</td><td style="color:#22c55e;">75%</td><td>Ohne Schutz</td></tr>
+                  <tr><td>+3 → +4</td><td style="color:var(--gold);">65%</td><td>Ohne Schutz</td></tr>
+                  <tr><td>+4 → +5</td><td style="color:var(--gold);">50%</td><td>Schutzrolle</td></tr>
+                  <tr><td>+5 → +6</td><td style="color:var(--crimson);">45%</td><td>Schutzrolle</td></tr>
+                  <tr><td>+6 → +7</td><td style="color:var(--crimson);">40%</td><td>Lucky Scroll</td></tr>
+                  <tr><td>+7 → +8</td><td style="color:var(--crimson);">35%</td><td>Lucky + Schutz</td></tr>
+                  <tr><td>+8 → +9</td><td style="color:var(--crimson);">30%</td><td>Lucky + Schutz</td></tr>
+                  <tr><td>+9 → +10</td><td style="color:var(--crimson);">25%</td><td>Lucky + Schutz</td></tr>
+                  <tr><td>+10 → +11</td><td style="color:#ff0044;">20%</td><td>Nur mit Glück</td></tr>
+                  <tr><td>+11 → +12</td><td style="color:#ff0044;">15%</td><td>Risiko!</td></tr>
+                  <tr><td>+12 → +13</td><td style="color:#ff0044;">10%</td><td>Legendär</td></tr>
+                  <tr><td>+13 → +14</td><td style="color:#ff0044;">5%</td><td>Nur Legenden</td></tr>
+                  <tr><td>+14 → +15</td><td style="color:#ff0044;">3%</td><td>⭐ Mythisch</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====== TAB: STAT-MIN-MAXER ====== -->
+      <section id="tab-stat-minmax" class="tab-content">
+        <div class="page-header">
+          <div>
+            <h1>📈 <span class="highlight">Stat-Punkte</span> Min-Maxer</h1>
+            <p>Berechne die optimale Stat-Verteilung für deinen Charakter</p>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">⚙️ Stat-Berechnung</span>
+            </div>
+            <div class="stats-form">
+              <div>
+                <label style="font-size:0.8rem;color:var(--text-muted);display:block;margin-bottom:4px;">📖 Klasse</label>
+                <select id="statClass">
+                  <option value="dark-knight">Dark Knight (DK)</option>
+                  <option value="magic-glip">Magic Glip (MG)</option>
+                  <option value="fairy-elf">Fairy Elf (E)</option>
+                  <option value="summoner">Summoner (SUM)</option>
+                  <option value="ruler-knight">Ruler Knight (RK)</option>
+                  <option value="warlord">Warlord (WL)</option>
+                </select>
+              </div>
+              <div>
+                <label style="font-size:0.8rem;color:var(--text-muted);display:block;margin-bottom:4px;">🎯 Ziel</label>
+                <select id="statGoal">
+                  <option value="balanced">Ausgeglichen</option>
+                  <option value="pvp">PvP Fokus</option>
+                  <option value="pve">PvE / Bossing</option>
+                  <option value="tank">Tank / Survivability</option>
+                </select>
+              </div>
+              <div>
+                <label style="font-size:0.8rem;color:var(--text-muted);display:block;margin-bottom:4px;">💪 STR</label>
+                <input type="range" id="statStr" min="0" max="2000" value="500" step="10" />
+                <span style="font-family:var(--font-mono);color:var(--gold);font-size:0.85rem;" id="statStrVal">500</span>
+              </div>
+              <div>
+                <label style="font-size:0.8rem;color:var(--text-muted);display:block;margin-bottom:4px;">🏃 AGI</label>
+                <input type="range" id="statAgi" min="0" max="2000" value="500" step="10" />
+                <span style="font-family:var(--font-mono);color:var(--gold);font-size:0.85rem;" id="statAgiVal">500</span>
+              </div>
+              <div>
+                <label style="font-size:0.8rem;color:var(--text-muted);display:block;margin-bottom:4px;">❤️ VIT</label>
+                <input type="range" id="statVit" min="0" max="2000" value="500" step="10" />
+                <span style="font-family:var(--font-mono);color:var(--gold);font-size:0.85rem;" id="statVitVal">500</span>
+              </div>
+              <div>
+                <label style="font-size:0.8rem;color:var(--text-muted);display:block;margin-bottom:4px;">🔮 ENE</label>
+                <input type="range" id="statEne" min="0" max="2000" value="500" step="10" />
+                <span style="font-family:var(--font-mono);color:var(--gold);font-size:0.85rem;" id="statEneVal">500</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">📊 Ergebnis</span>
+            </div>
+            <div class="stats-result" id="statsResult">
+              <div class="stats-result-item">
+                <div class="label">Schaden (Min)</div>
+                <div class="value" id="rsDamageMin">0</div>
+              </div>
+              <div class="stats-result-item">
+                <div class="label">Schaden (Max)</div>
+                <div class="value" id="rsDamageMax">0</div>
+              </div>
+              <div class="stats-result-item">
+                <div class="label">Verteidigung</div>
+                <div class="value" id="rsDefense">0</div>
+              </div>
+              <div class="stats-result-item">
+                <div class="label">HP</div>
+                <div class="value" id="rsHp">0</div>
+              </div>
+              <div class="stats-result-item">
+                <div class="label">Angriffsrate</div>
+                <div class="value" id="rsAttackRate">0</div>
+              </div>
+              <div class="stats-result-item">
+                <div class="label">Schild-Block</div>
+                <div class="value" id="rsShieldBlock">0</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====== TAB: EARN-PORTAL ====== -->
+      <section id="tab-earn" class="tab-content">
+        <div class="page-header">
+          <div>
+            <h1>💰 <span class="highlight">Earn-Portal</span> &amp; Web-Surveys</h1>
+            <p>Verdiene Coins durch Umfragen, Angebote &amp; tägliche Quests</p>
+          </div>
+          <div class="header-actions">
+            <span class="badge badge-gold" style="font-size:0.9rem;padding:6px 16px;">
+              💰 <span id="earnBalance">0</span> Coins
+            </span>
+          </div>
+        </div>
+
+        <div class="grid-3" style="margin-bottom:24px;">
+          <div class="stat-card">
+            <span class="stat-label">💰 Gesamt verdient</span>
+            <span class="stat-value gold" id="earnTotal">0</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">📊 Umfragen heute</span>
+            <span class="stat-value cyan" id="earnSurveysToday">0</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">🏆 Tägliche Serie</span>
+            <span class="stat-value gold" id="earnStreak">0 Tage</span>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:20px;">
+          <div class="card-header">
+            <span class="card-title">📊 Verfügbare Umfragen</span>
+            <span class="badge badge-green">3 verfügbar</span>
+          </div>
+          <div id="surveyList" style="display:flex;flex-direction:column;gap:12px;">
+            <div class="survey-card" data-survey="gaming">
+              <div class="survey-icon">🎮</div>
+              <div class="survey-info">
+                <h4>Gaming-Verhalten 2026</h4>
+                <p>5 Min. · Mobile-MMO Fokus</p>
+              </div>
+              <div class="survey-reward">+45 Coins</div>
+            </div>
+            <div class="survey-card" data-survey="spending">
+              <div class="survey-icon">💳</div>
+              <div class="survey-info">
+                <h4>In-Game Ausgaben</h4>
+                <p>3 Min. · Microtransactions</p>
+              </div>
+              <div class="survey-reward">+30 Coins</div>
+            </div>
+            <div class="survey-card" data-survey="mmo">
+              <div class="survey-icon">⚔️</div>
+              <div class="survey-info">
+                <h4>MMO-Community Trends</h4>
+                <p>7 Min. · Detailliert</p>
+              </div>
+              <div class="survey-reward">+80 Coins</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Survey Modal (3-Step) -->
+        <div class="modal-overlay" id="surveyModal">
+          <div class="modal-content">
+            <button class="modal-close" id="surveyModalClose">&times;</button>
+            <h2 id="surveyModalTitle">Umfrage</h2>
+            <div id="surveyStep1">
+              <p style="color:var(--text-secondary);margin-bottom:16px;" id="surveyQuestion">Frage 1</p>
+              <div id="surveyOptions" style="display:flex;flex-direction:column;gap:8px;"></div>
+              <button class="btn btn-gold btn-block" id="surveyNextBtn" style="margin-top:16px;">Weiter</button>
+            </div>
+            <div id="surveyStep2" style="display:none;">
+              <p style="color:var(--text-secondary);margin-bottom:16px;">Fast geschafft! Nur noch eine Frage.</p>
+              <div id="surveyOptions2" style="display:flex;flex-direction:column;gap:8px;"></div>
+              <button class="btn btn-gold btn-block" id="surveySubmitBtn" style="margin-top:16px;">Abschließen</button>
+            </div>
+            <div id="surveyStep3" style="display:none;text-align:center;">
+              <div style="font-size:3rem;margin-bottom:16px;">✅</div>
+              <h2 style="color:var(--gold);">Umfrage abgeschlossen!</h2>
+              <p style="color:var(--text-secondary);margin-bottom:8px;">Deine Antworten wurden übermittelt.</p>
+              <p style="font-size:1.3rem;font-weight:700;color:var(--gold);" id="surveyRewardDisplay">+0 Coins</p>
+              <button class="btn btn-gold btn-block" id="surveyDoneBtn" style="margin-top:16px;">Fertig</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====== TAB: AUSZAHLUNGEN ====== -->
+      <section id="tab-payouts" class="tab-content">
+        <div class="page-header">
+          <div>
+            <h1>💳 <span class="highlight">Auszahlungs</span>-Zentrum</h1>
+            <p>24h Sicherheits-Warteschlange · IPQualityScore Fraud-Check</p>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">📤 Auszahlung beantragen</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:12px;">
+              <div>
+                <label style="font-size:0.8rem;color:var(--text-muted);display:block;margin-bottom:4px;">Auszahlungsmethode</label>
+                <select id="payoutMethod">
+                  <option value="paypal">PayPal</option>
+                  <option value="playstore">PlayStore-Gutschein</option>
+                  <option value="appstore">Apple App Store</option>
+                  <option value="razergold">Razer Gold</option>
+                </select>
+              </div>
+              <div>
+                <label style="font-size:0.8rem;color:var(--text-muted);display:block;margin-bottom:4px;">Empfänger (E-Mail / ID)</label>
+                <input type="text" id="payoutAddress" placeholder="paypal@email.com" />
+              </div>
+              <div>
+                <label style="font-size:0.8rem;color:var(--text-muted);display:block;margin-bottom:4px;">Betrag (Coins)</label>
+                <input type="number" id="payoutAmount" placeholder="1000" min="100" />
+              </div>
+              <div style="font-size:0.75rem;color:var(--text-muted);background:var(--bg-tertiary);padding:8px 12px;border-radius:var(--radius-sm);">
+                💰 Mindestauszahlung: <strong>100 Coins</strong> · ⏳ 24h Security-Queue
+              </div>
+              <button class="btn btn-gold btn-block" id="payoutRequestBtn">💰 Auszahlung beantragen</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">📋 Auszahlungsverlauf</span>
+            </div>
+            <div id="payoutHistory">
+              <div style="text-align:center;padding:20px;color:var(--text-muted);font-size:0.85rem;">Keine Auszahlungen bisher.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====== TAB: Q12 P2P MARKTPLATZ ====== -->
+      <section id="tab-marketplace" class="tab-content">
+        <div class="page-header">
+          <div>
+            <h1>🏪 <span class="highlight">Q12 P2P</span> Marktplatz</h1>
+            <p>Sicherer Spielerhandel mit 5% Treuhand-Gebühr (Escrow)</p>
+          </div>
+          <div class="header-actions">
+            <button class="btn btn-gold btn-sm" id="marketCreateBtn">+ Angebot erstellen</button>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:20px;">
+          <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
+            <input type="text" placeholder="🔍 Suche..." id="marketSearch" style="max-width:260px;flex:1;" />
+            <select id="marketFilter" style="max-width:160px;">
+              <option value="all">Alle</option>
+              <option value="items">Items</option>
+              <option value="accounts">Accounts</option>
+              <option value="raid-carries">Raid-Carries</option>
+              <option value="coaching">Coaching</option>
+            </select>
+            <select id="marketSort" style="max-width:160px;">
+              <option value="newest">Neueste</option>
+              <option value="price-asc">Preis aufsteigend</option>
+              <option value="price-desc">Preis absteigend</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="marketplace-grid" id="marketGrid">
+          <!-- Dynamisch via JS -->
+        </div>
+
+        <!-- Create Listing Modal -->
+        <div class="modal-overlay" id="marketModal">
+          <div class="modal-content">
+            <button class="modal-close" id="marketModalClose">&times;</button>
+            <h2>📦 Angebot erstellen</h2>
+            <div style="display:flex;flex-direction:column;gap:12px;margin-top:16px;">
+              <div>
+                <label style="font-size:0.8rem;color:var(--text-muted);display:block;margin-bottom:4px;">Kategorie</label>
+                <select id="marketNewType">
+                  <option value="items">Item</option>
+                  <option value="accounts">Account</option>
+                  <option value="raid-carries">Raid-Carry</option>
+                  <option value="coaching">Coaching</option>
+                </select>
+              </div>
+              <div>
+                <label style="font-size:0.8rem;color:var(--text-muted);display:block;margin-bottom:4px;">Titel</label>
+                <input type="text" id="marketNewTitle" placeholder="z.B. +13 Drachen-Sturmspeer" />
+              </div>
+              <div>
+                <label style="font-size:0.8rem;color:var(--text-muted);display:block;margin-bottom:4px;">Beschreibung</label>
+                <textarea id="marketNewDesc" rows="2" placeholder="Details…"></textarea>
+              </div>
+              <div>
+                <label style="font-size:0.8rem;color:var(--text-muted);display:block;margin-bottom:4px;">Preis (Coins)</label>
+                <input type="number" id="marketNewPrice" placeholder="500" min="1" />
+              </div>
+              <div style="font-size:0.75rem;color:var(--text-muted);">
+                ⛓️ 5% Treuhand-Gebühr: <strong id="marketFeePreview">25 Coins</strong>
+              </div>
+              <button class="btn btn-gold btn-block" id="marketCreateSubmit">Angebot veröffentlichen</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====== TAB: 5-AGENTEN OODA ====== -->
+      <section id="tab-agents" class="tab-content">
+        <div class="page-header">
+          <div>
+            <h1>🤖 <span class="highlight">5-Agenten</span> OODA Dashboard</h1>
+            <p>Autonomes KI-Agenten-Netzwerk für Patch-Recherche, Support, Outreach, Bugfix &amp; Fraud</p>
+          </div>
+        </div>
+
+        <div class="agent-grid" style="margin-bottom:24px;">
+          <div class="agent-card">
+            <div class="agent-icon" style="background:rgba(0,212,255,0.15);">🔍</div>
+            <div class="agent-name">Agent Typ-1</div>
+            <div class="agent-status online">Patch-Recherche</div>
+            <div style="font-size:0.7rem;color:var(--text-muted);margin-top:8px;">OODA: Observe</div>
+          </div>
+          <div class="agent-card">
+            <div class="agent-icon" style="background:rgba(212,168,67,0.15);">💬</div>
+            <div class="agent-name">Agent Typ-2</div>
+            <div class="agent-status online">Support &amp; Chatbot</div>
+            <div style="font-size:0.7rem;color:var(--text-muted);margin-top:8px;">OODA: Orient</div>
+          </div>
+          <div class="agent-card">
+            <div class="agent-icon" style="background:rgba(34,197,94,0.15);">📢</div>
+            <div class="agent-name">Agent Typ-3</div>
+            <div class="agent-status busy">Gilden-Outreach</div>
+            <div style="font-size:0.7rem;color:var(--text-muted);margin-top:8px;">OODA: Decide</div>
+          </div>
+          <div class="agent-card">
+            <div class="agent-icon" style="background:rgba(220,20,60,0.15);">🐛</div>
+            <div class="agent-name">Agent Typ-4</div>
+            <div class="agent-status idle">Auto-Bugfix CrewAI</div>
+            <div style="font-size:0.7rem;color:var(--text-muted);margin-top:8px;">OODA: Act</div>
+          </div>
+          <div class="agent-card">
+            <div class="agent-icon" style="background:rgba(160,164,184,0.15);">🛡️</div>
+            <div class="agent-name">Agent Typ-5</div>
+            <div class="agent-status online">Betrugsschutz</div>
+            <div style="font-size:0.7rem;color:var(--text-muted);margin-top:8px;">OODA: Loop</div>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">💻 CrewAI Terminal (Auto-Bugfix)</span>
+              <span class="badge badge-green">Aktiv</span>
+            </div>
+            <div class="terminal-box" id="crewaiTerminal">
+              <div class="line-info">⏳ CrewAI Agent-4 initialisiert...</div>
+              <div class="line-input">$ scan --path ./src --fix auto</div>
+              <div class="line-info">🔍 Scanne nach Bugs...</div>
+              <div class="line-success">✓ Keine kritischen Fehler gefunden</div>
+              <div class="line-info">⏳ Warte auf nächsten Zyklus...</div>
+            </div>
+            <button class="btn btn-sm" id="crewaiRunBtn" style="margin-top:8px;">▶️ Manuellen Scan starten</button>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">📊 Agenten-Logs</span>
+            </div>
+            <div class="terminal-box" id="agentLogs">
+              <div class="line-success">[T1] Patch 6.3.2 analysiert – keine Konflikte</div>
+              <div class="line-info">[T2] 12 Support-Tickets heute gelöst</div>
+              <div class="line-info">[T3] Gilden-Outreach: 8 neue Kooperationen</div>
+              <div class="line-success">[T4] Auto-Bugfix: 3 Patches deployed</div>
+              <div class="line-info">[T5] Fraud-Check: 0 verdächtige Transaktionen</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====== TAB: SETTINGS & DSGVO ====== -->
+      <section id="tab-settings" class="tab-content">
+        <div class="page-header">
+          <div>
+            <h1>⚙️ <span class="highlight">Einstellungen</span> &amp; DSGVO</h1>
+            <p>Account-Verwaltung · Datenschutz · Compliance (Art. 17 + 20 DSGVO)</p>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:20px;">
+          <div class="card-header">
+            <span class="card-title">🔐 Account</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <div>
+                <strong style="color:var(--text-primary);">Anmeldung</strong>
+                <div style="font-size:0.8rem;color:var(--text-muted);">Google / Discord</div>
+              </div>
+              <button class="btn btn-gold btn-sm" id="settingsLoginBtn">🔑 Anmelden</button>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <div>
+                <strong style="color:var(--text-primary);">Firebase Sync</strong>
+                <div style="font-size:0.8rem;color:var(--text-muted);" id="settingsSyncStatus">Lokaler Modus</div>
+              </div>
+              <span class="badge badge-gold" id="settingsSyncBadge">Offline</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:20px;">
+          <div class="card-header">
+            <span class="card-title">🔊 Benachrichtigungen</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span>Push-Benachrichtigungen</span>
+              <span style="position:relative;display:inline-block;width:48px;height:26px;">
+                <input type="checkbox" id="pushToggle" style="opacity:0;width:0;height:0;position:absolute;" />
+                <span style="position:absolute;inset:0;background:var(--bg-tertiary);border-radius:13px;border:1px solid var(--border-color);transition:all 0.2s;pointer-events:none;"></span>
+                <span id="pushToggleKnob" style="position:absolute;top:3px;left:26px;width:18px;height:18px;border-radius:50%;background:var(--gold);transition:all 0.2s;pointer-events:none;"></span>
+              </span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span>Boss-Radar Benachrichtigungen</span>
+              <span style="position:relative;display:inline-block;width:48px;height:26px;">
+                <input type="checkbox" id="bossNotifToggle" checked style="opacity:0;width:0;height:0;position:absolute;" />
+                <span style="position:absolute;inset:0;background:var(--bg-tertiary);border-radius:13px;border:1px solid var(--border-color);transition:all 0.2s;pointer-events:none;"></span>
+                <span id="bossNotifKnob" style="position:absolute;top:3px;left:26px;width:18px;height:18px;border-radius:50%;background:var(--gold);transition:all 0.2s;pointer-events:none;"></span>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">🛡️ DSGVO / Datenschutz</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <div>
+                <strong style="color:var(--text-primary);">Datenexport (Art. 20 DSGVO)</strong>
+                <div style="font-size:0.8rem;color:var(--text-muted);">JSON-Export aller gespeicherten Daten</div>
+              </div>
+              <button class="btn btn-cyan btn-sm" id="exportDataBtn">📥 Exportieren</button>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <div>
+                <strong style="color:var(--crimson);">Account löschen (Art. 17 DSGVO)</strong>
+                <div style="font-size:0.8rem;color:var(--text-muted);">Vollständiges Purging aller Daten</div>
+              </div>
+              <button class="btn btn-crimson btn-sm" id="deleteAccountBtn">🗑️ Löschen</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
     </main>
-  </body>
+  </div>
+
+  <!-- ===== SECOND SCREEN OVERLAY WIDGET ===== -->
+  <div class="overlay-widget" id="overlayWidget">
+    <div class="widget-header">
+      <span>👑 Boss-Radar</span>
+      <button id="overlayClose" style="background:none;border:none;color:var(--text-muted);cursor:pointer;">✕</button>
+    </div>
+    <div id="overlayBossList">
+      <div class="widget-event">
+        <span>🛡️ Bloody Angel</span>
+        <span class="overlay-boss-time" style="font-family:var(--font-mono);color:var(--gold);">--:--:--</span>
+      </div>
+      <div class="widget-event">
+        <span>👑 Lord Silvester</span>
+        <span class="overlay-boss-time" style="font-family:var(--font-mono);color:var(--gold);">--:--:--</span>
+      </div>
+      <div class="widget-event">
+        <span>🔥 Bloody Angel</span>
+        <span class="overlay-boss-time" style="font-family:var(--font-mono);color:var(--gold);">--:--:--</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SENSEI DRACO CHAT ===== -->
+  <button class="draco-fab" id="dracoFab" aria-label="Sensei Draco Chat öffnen">🐉</button>
+
+  <div class="draco-chat" id="dracoChat">
+    <div class="draco-header">
+      <div class="draco-avatar">🐉</div>
+      <div class="draco-header-info">
+        <h3>Sensei Draco</h3>
+        <span>🟢 Online · MMO-Wissensdatenbank</span>
+      </div>
+      <button id="dracoCloseBtn" style="background:none;border:none;color:var(--text-muted);font-size:1.2rem;cursor:pointer;">✕</button>
+    </div>
+    <div class="draco-messages" id="dracoMessages">
+      <div class="draco-message bot">👋 Sei gegrüßt, junger Krieger! Ich bin Sensei Draco. Frage mich zu Builds, Events, Quests oder Strategien für MU: Dark Epoch und andere MMOs.</div>
+    </div>
+    <div class="draco-input-bar">
+      <input type="text" id="dracoInput" placeholder="Frage stellen..." />
+      <button id="dracoSendBtn">Senden</button>
+    </div>
+  </div>
+
+  <!-- ===== TOAST CONTAINER ===== -->
+  <div class="toast-container" id="toastContainer"></div>
+
+</body>
 </html>

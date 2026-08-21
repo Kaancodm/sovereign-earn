@@ -1,0 +1,14 @@
+{
+  "name": "sovereign-earn",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Sovereign Earn – MU: Dark Epoch Web Companion & Earn Hub",
+  "engines": {
+    "node": "20"
+  },
+  "scripts": {
+    "test": "node scripts/syntax-check.js",
+    "check": "node scripts/syntax-check.js && node scripts/staging-check.js",
+    "check:staging": "node scripts/staging-check.js"
+  }
+}

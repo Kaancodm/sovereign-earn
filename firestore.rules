@@ -6,34 +6,87 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // users Collection
+    // ============================================================
+    // users – fail-closed
+    // - Lesen: nur das eigene Profil (bzw. verifizierte Senseis
+    //   dürfen von anderen die öffentlichen Coaching-Felder lesen)
+    // - Schreiben: KOMPLETT untersagt für Clients. Profile werden
+    //   ausschließlich serverseitig (ensureUserProfile) angelegt
+    //   und alle Guthaben-Felder nur vom Admin SDK bewegt.
+    // ============================================================
     match /users/{userId} {
-      allow read: if isLoggedIn() && (request.auth.uid == userId || 
+      allow read: if isLoggedIn() && (request.auth.uid == userId ||
         (resource.data.isVerifiedSensei == true && resource.data.offersPaidCoaching == true));
 
+      // SCHUTZSCHILD: Kein Client darf jemals Guthaben-Felder ändern!
       allow update: if isLoggedIn() && request.auth.uid == userId &&
-        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['coins', 'reservedCoins', 'coachingEarnings']);
+        !request.resource.data.diff(resource.data).affectedKeys()
+          .hasAny(['coins', 'coinBalance', 'reservedCoins', 'coachingEarnings']);
 
-      allow write: if false;
+      allow write: if false; // Create/Delete ebenfalls nur serverseitig
     }
 
-    // coachingRequests Collection
+    // ============================================================
+    // coachingRequests – nur Beteiligte lesen, Schreiben serverseitig
+    // ============================================================
     match /coachingRequests/{requestId} {
-      allow read: if isLoggedIn() && 
-        (resource.data.playerId == request.auth.uid || resource.data.senseiId == request.auth.uid);
+      allow read: if isLoggedIn() &&
+        (resource.data.studentId == request.auth.uid ||
+         resource.data.senseiId == request.auth.uid);
 
-      allow write: if false;
+      allow write: if false; // Statusänderungen nur über Cloud Functions
     }
 
-    // platform collection (optional fee tracking)
-    match /platform/{document=**} {
+    // ============================================================
+    // marketplace – P2P-Listings (5% Escrow)
+    // Erstellen mit Auth, Verwalten nur durch den Verkäufer.
+    // Käufe laufen serverseitig (initiateEscrowTrade, Milestone 3).
+    // ============================================================
+    match /marketplace/{listingId} {
+      allow read: if true;
+      allow create: if isLoggedIn() &&
+        request.resource.data.sellerId == request.auth.uid &&
+        request.resource.data.price > 0;
+      allow update, delete: if isLoggedIn() &&
+        resource.data.sellerId == request.auth.uid;
+    }
+
+    // ============================================================
+    // withdrawals – Auszahlungsanträge (24h-Queue)
+    // Anlegen mit Auth, danach für niemanden mehr änderbar.
+    // ============================================================
+    match /withdrawals/{ticketId} {
+      allow read, create: if isLoggedIn() &&
+        request.resource.data.userId == request.auth.uid;
+      allow update, delete: if false; // Niemand manipuliert Tickets
+    }
+
+    // ============================================================
+    // transactions – Postback-Nachweise (Idempotenz)
+    // Nur das Admin SDK (Cloud Functions) darf hier schreiben.
+    // ============================================================
+    match /transactions/{document} {
       allow read, write: if false;
     }
 
-    // ai_advice (Build-Advisor history)
-    match /ai_advice/{document=**} {
+    // ============================================================
+    // deletionRequests – DSGVO-Audit-Trail (Art. 17)
+    // ============================================================
+    match /deletionRequests/{document} {
+      allow read, write: if false;
+    }
+
+    // ============================================================
+    // ai_advice – Build-Advisor-Historie
+    // ============================================================
+    match /ai_advice/{document} {
       allow read: if isLoggedIn() && resource.data.uid == request.auth.uid;
       allow write: if false;
+    }
+
+    // platform – Gebühren-Tracking, komplett serverseitig
+    match /platform/{document=**} {
+      allow read, write: if false;
     }
   }
 }
