@@ -51,10 +51,9 @@ jobs:
         working-directory: functions
         run: npm install
 
-      - name: Cloud Functions deployen
+      - name: Firebase Authentifizierung vorbereiten
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          FIREBASE_PROJECT_ID: ${{ inputs.firebase_project_id }}
         run: |
           set -euo pipefail
           SA="$RUNNER_TEMP/firebase-service-account.json"
@@ -62,31 +61,38 @@ jobs:
           node -e 'JSON.parse(require("fs").readFileSync(process.argv[1],"utf8"))' "$SA" \
             || { echo "::error::FIREBASE_SERVICE_ACCOUNT ist kein gueltiges JSON"; exit 1; }
           export GOOGLE_APPLICATION_CREDENTIALS="$SA"
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$SA" >> "$GITHUB_ENV"
+
+      - name: Legacy Gen1-Postbacks vor v2-Migration entfernen
+        env:
+          FIREBASE_PROJECT_ID: ${{ inputs.firebase_project_id }}
+        run: |
+          set -euo pipefail
+          # Firebase unterstützt kein direktes Gen1 -> Gen2 Upgrade unter
+          # demselben Namen. Die beiden historischen Postbacks müssen in
+          # Staging einmal entfernt werden, bevor ihre v2-Definitionen mit
+          # identischem Namen deployt werden.
+          firebase functions:delete pollfishPostback --project "$FIREBASE_PROJECT_ID" --region us-central1 --force || true
+          firebase functions:delete bitlabsPostback --project "$FIREBASE_PROJECT_ID" --region us-central1 --force || true
+
+      - name: Cloud Functions deployen
+        env:
+          FIREBASE_PROJECT_ID: ${{ inputs.firebase_project_id }}
+        run: |
+          set -euo pipefail
           firebase deploy --project "$FIREBASE_PROJECT_ID" --non-interactive --force \
             --only functions:acceptCoachingRequest,functions:completeCoachingRequest,functions:declineCoachingRequest,functions:cancelCoachingRequest,functions:createCoachingRequest,functions:askBuildAdvisor,functions:updateSenseiProfile,functions:ensureUserProfile,functions:requestAccountDeletion,functions:healthCheck,functions:pollfishPostback,functions:bitlabsPostback
 
       - name: Firestore Rules deployen
         env:
-          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           FIREBASE_PROJECT_ID: ${{ inputs.firebase_project_id }}
         run: |
           set -euo pipefail
-          SA="$RUNNER_TEMP/firebase-service-account.json"
-          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$SA"
-          node -e 'JSON.parse(require("fs").readFileSync(process.argv[1],"utf8"))' "$SA" \
-            || { echo "::error::FIREBASE_SERVICE_ACCOUNT ist kein gueltiges JSON"; exit 1; }
-          export GOOGLE_APPLICATION_CREDENTIALS="$SA"
           firebase deploy --project "$FIREBASE_PROJECT_ID" --non-interactive --force --only firestore:rules
 
       - name: Hosting deployen
         env:
-          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           FIREBASE_PROJECT_ID: ${{ inputs.firebase_project_id }}
         run: |
           set -euo pipefail
-          SA="$RUNNER_TEMP/firebase-service-account.json"
-          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$SA"
-          node -e 'JSON.parse(require("fs").readFileSync(process.argv[1],"utf8"))' "$SA" \
-            || { echo "::error::FIREBASE_SERVICE_ACCOUNT ist kein gueltiges JSON"; exit 1; }
-          export GOOGLE_APPLICATION_CREDENTIALS="$SA"
           firebase deploy --project "$FIREBASE_PROJECT_ID" --non-interactive --force --only hosting
