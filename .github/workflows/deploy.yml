@@ -1,56 +1,61 @@
-name: Deploy to Firebase
+name: Deploy staging
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+  workflow_dispatch:
+    inputs:
+      firebase_project:
+        description: Firebase project id used for staging
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: staging-deploy
+  cancel-in-progress: false
 
 jobs:
   deploy:
-    name: Deploy to Firebase
+    name: Deploy to Firebase staging
     runs-on: ubuntu-latest
+    environment: staging
 
     steps:
-      - name: Checkout Code
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: 20
+          cache: npm
 
       - name: Install Firebase CLI
-        run: npm install -g firebase-tools
+        run: npm install --global firebase-tools@latest
 
-      - name: Install Functions Dependencies
+      - name: Install Functions dependencies
         working-directory: functions
-        run: npm install
+        run: npm ci
 
-      - name: Deploy Functions
-        env:
-          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_SOVEREIGN_BDB76 }}
+      - name: Validate source
         run: |
-          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/firebase-service-account.json"
-          export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/firebase-service-account.json"
-          firebase use sovereign-bdb76
-          # Gezielter Deploy: verhindert, dass der non-interaktive Run wegen
-          # bestehender Funktionen im Projekt (z. B. pollfishPostback) abbricht.
-          # Neue Exports aus functions/index.js hier ergaenzen.
-          firebase deploy --only functions:acceptCoachingRequest,functions:completeCoachingRequest,functions:declineCoachingRequest,functions:cancelCoachingRequest
+          npm test
+          npm run check
 
-      - name: Deploy Firestore Rules
+      - name: Authenticate Firebase
         env:
-          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_SOVEREIGN_BDB76 }}
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
         run: |
+          test -n "$FIREBASE_SERVICE_ACCOUNT"
           printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/firebase-service-account.json"
-          export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/firebase-service-account.json"
-          firebase deploy --only firestore:rules
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/firebase-service-account.json" >> "$GITHUB_ENV"
 
-      - name: Deploy Hosting
+      - name: Deploy Functions, Rules and Hosting
         env:
-          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_SOVEREIGN_BDB76 }}
+          FIREBASE_PROJECT: ${{ inputs.firebase_project }}
         run: |
-          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/firebase-service-account.json"
-          export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/firebase-service-account.json"
-          firebase deploy --only hosting
+          firebase deploy \
+            --project "$FIREBASE_PROJECT" \
+            --only functions,firestore:rules,firestore:indexes,hosting \
+            --non-interactive
