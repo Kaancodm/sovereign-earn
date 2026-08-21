@@ -69,11 +69,18 @@ jobs:
         run: |
           set -euo pipefail
           # Firebase unterstützt kein direktes Gen1 -> Gen2 Upgrade unter
-          # demselben Namen. Die beiden historischen Postbacks müssen in
-          # Staging einmal entfernt werden, bevor ihre v2-Definitionen mit
-          # identischem Namen deployt werden.
-          firebase functions:delete pollfishPostback --project "$FIREBASE_PROJECT_ID" --region us-central1 --force || true
-          firebase functions:delete bitlabsPostback --project "$FIREBASE_PROJECT_ID" --region us-central1 --force || true
+          # demselben Namen. Nur wenn die historischen Funktionen existieren,
+          # werden sie entfernt; Auth-/CLI-Fehler brechen den Workflow ab.
+          FUNCTIONS_JSON="$RUNNER_TEMP/firebase-functions.json"
+          firebase functions:list --project "$FIREBASE_PROJECT_ID" --json > "$FUNCTIONS_JSON"
+
+          if grep -q '"pollfishPostback"' "$FUNCTIONS_JSON"; then
+            firebase functions:delete pollfishPostback --project "$FIREBASE_PROJECT_ID" --region us-central1 --force
+          fi
+
+          if grep -q '"bitlabsPostback"' "$FUNCTIONS_JSON"; then
+            firebase functions:delete bitlabsPostback --project "$FIREBASE_PROJECT_ID" --region us-central1 --force
+          fi
 
       - name: Cloud Functions deployen
         env:
