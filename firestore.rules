@@ -1,39 +1,19 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    function isLoggedIn() {
-      return request.auth != null;
+    match /users/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow create: if request.auth != null && request.auth.uid == uid && request.resource.data.coinBalance == 0;
+      allow update: if request.auth != null && request.auth.uid == uid && request.resource.data.coinBalance == resource.data.coinBalance;
+      allow delete: if false;
     }
-
-    // users Collection
-    match /users/{userId} {
-      allow read: if isLoggedIn() && (request.auth.uid == userId || 
-        (resource.data.isVerifiedSensei == true && resource.data.offersPaidCoaching == true));
-
-      allow update: if isLoggedIn() && request.auth.uid == userId &&
-        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['coins', 'reservedCoins', 'coachingEarnings']);
-
-      allow write: if false;
+    match /coachingRequests/{id} {
+      allow read: if request.auth != null && (resource.data.studentId == request.auth.uid || resource.data.senseiId == request.auth.uid);
+      allow create: if request.auth != null && request.resource.data.studentId == request.auth.uid && request.resource.data.status == 'pending' && request.resource.data.priceCoins is number && request.resource.data.priceCoins > 0 && request.resource.data.escrowCoins == 0;
+      allow update, delete: if false;
     }
-
-    // coachingRequests Collection
-    match /coachingRequests/{requestId} {
-      allow read: if isLoggedIn() && 
-        (resource.data.playerId == request.auth.uid || resource.data.senseiId == request.auth.uid);
-
-      allow write: if false;
-    }
-
-    // platform collection (optional fee tracking)
-    match /platform/{document=**} {
-      allow read, write: if false;
-    }
-
-    // ai_advice (Build-Advisor history)
-    match /ai_advice/{document=**} {
-      allow read: if isLoggedIn() && resource.data.uid == request.auth.uid;
-      allow write: if false;
-    }
+    match /ledger/{id} { allow read, write: if false; }
+    match /payouts/{id} { allow read, write: if false; }
+    match /postbacks/{id} { allow read, write: if false; }
   }
 }

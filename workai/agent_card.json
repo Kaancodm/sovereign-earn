@@ -1,0 +1,1 @@
+{"name":"Sovereign WorkAI","description":"Private agent gateway for build advice, sensei matching and fraud analysis.","version":"1.0.0","url":"/a2a/v1","capabilities":{"streaming":false},"skills":[{"id":"mu-build-advisor","name":"MU Build Advisor"},{"id":"sensei-matcher","name":"Sensei Matcher"},{"id":"fraud-analyzer","name":"Fraud Analyzer"}]}

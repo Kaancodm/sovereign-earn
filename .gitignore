@@ -3,9 +3,8 @@ node_modules/
 .env.*
 *.local
 serviceAccount*.json
-firebase-debug.log
-firestore-debug.log
-ui-debug.log
 .firebase/
 __pycache__/
 *.pyc
+npm-debug.log*
+.DS_Store
