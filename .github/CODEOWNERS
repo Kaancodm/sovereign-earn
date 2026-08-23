@@ -1,0 +1,7 @@
+# Default ownership for the repository
+* @Kaancodm
+
+# Security-sensitive areas
+.github/ @Kaancodm
+docs/architecture/ @Kaancodm
+functions/ @Kaancodm
