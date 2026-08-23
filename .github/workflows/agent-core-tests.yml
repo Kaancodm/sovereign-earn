@@ -1,15 +1,17 @@
-name: Sovereign Agent Core Tests
+name: Sovereign Agent Core and Skills v1 Tests
 
 on:
   push:
     branches:
       - agent-core-trust-boundary-hardening
+      - skills-v1-foundation
   pull_request:
     branches:
       - agent-core-trust-boundary-hardening
+      - skills-v1-foundation
 
 jobs:
-  agent-core:
+  agent-core-and-skills:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -20,14 +22,8 @@ jobs:
         with:
           node-version: "22"
 
-      - name: Install dependencies when lockfile exists
-        shell: bash
-        run: |
-          if [ -f package-lock.json ]; then
-            npm ci
-          else
-            echo "No package-lock.json present; skipping npm ci."
-          fi
+      - name: Install dependencies
+        run: npm ci
 
-      - name: Run exact Agent Core test command
+      - name: Run Agent Core, Skills v1, and Harness P0 tests
         run: npm run test:agent-core

@@ -5,95 +5,44 @@ const { createToolRequest } = require("./contracts");
 const { ApprovalStore } = require("./approval");
 const { AuditLog } = require("./audit");
 const { ToolRuntime } = require("./tool-runtime");
+const { createBudget } = require("./budget");
+const { createGovernanceContext } = require("./governance");
+const { createTraceContext, TraceLog } = require("./tracing");
 const { registerAgent, registerSkill, registerTool, clearRegistriesForTests } = require("./registry");
 
 const BASE = { runId: "run-1", agentId: "headcoder", skillId: "repository-analysis", capability: "github.read", action: "readRepo", args: { scope: "agent-core" } };
 function setup() { clearRegistriesForTests(); registerAgent({ id: "headcoder", active: true }); registerSkill({ id: "repository-analysis", allowedAgents: ["headcoder"] }); }
-function policyAllow() { return [{ agentId: BASE.agentId, skillId: BASE.skillId, capability: BASE.capability, action: BASE.action, decision: "allow", privileged: true }]; }
+function policyAllow(privileged = false) { return [{ agentId: BASE.agentId, skillId: BASE.skillId, capability: BASE.capability, action: BASE.action, decision: "allow", privileged }]; }
 function policyApproval() { return [{ agentId: BASE.agentId, skillId: BASE.skillId, capability: BASE.capability, action: BASE.action, decision: "approval_required", privileged: true }]; }
 function toolSpy() { let calls = 0; return { tool: { skillId: BASE.skillId, capability: BASE.capability, action: BASE.action, execute: async () => { calls += 1; return { ok: true }; } }, get calls() { return calls; } }; }
 function freshRequest(overrides = {}) { return createToolRequest({ toolCallId: "tool-1", ...BASE, ...overrides }); }
+function runtimeContext({ sessionMode = "production", scopes = [BASE.capability], budget = createBudget(), runId = BASE.runId, agentId = BASE.agentId, skillId = BASE.skillId } = {}) { return { runId, agentId, budget, governanceContext: createGovernanceContext({ identity: { userId: "user-1", role: "user" }, sessionMode, scopes }), contextManifest: { contextVersion: "1.0.0", runId, agentId, sessionMode, architectureVersion: "1.0.0", policyVersion: "1.0.0", flowVersion: "1.0.0", workspaceMapVersion: "1.0.0", skillVersions: [`${skillId}@1.0.0`], artifactRefs: [], dataClassification: { prompt: "model_visible", userRecord: "core_only" } }, traceContext: createTraceContext({ traceId: `trace-${runId}`, runId, agentId }) }; }
+function runtime(options = {}) { return new ToolRuntime({ ...options, runtimeContext: runtimeContext(options) }); }
+function approvalInput(request) { return { runId: request.runId, agentId: request.agentId, toolCallId: request.toolCallId, skillId: request.skillId, capability: request.capability, action: request.action, args: request.args, requestedBy: request.agentId, expiresAt: new Date(Date.now() + 60_000).toISOString() }; }
 
-test("authorized action completes and emits audit trail", async () => {
-  setup(); const spy = toolSpy(); registerTool(spy.tool); const audit = new AuditLog(); const runtime = new ToolRuntime({ policyRules: policyAllow(), audit });
-  const result = await runtime.executeTool(freshRequest());
+test("authorized action completes and emits audit and trace trail", async () => {
+  setup(); const spy = toolSpy(); registerTool(spy.tool); const audit = new AuditLog(); const traceLog = new TraceLog();
+  const result = await runtime({ policyRules: policyAllow(), audit, traceLog }).executeTool(freshRequest());
   assert.deepEqual(result, { status: "executed", result: { ok: true } }); assert.equal(spy.calls, 1);
-  assert.equal(audit.listByRun("run-1").map((e) => e.type).join(","), "tool.executing,tool.succeeded");
+  const auditTypes = audit.listByRun("run-1").filter((e) => ["tool.executing", "tool.succeeded", "tool.denied", "tool.failed"].includes(e.type)).map((e) => e.type);
+  assert.deepEqual(auditTypes, ["tool.executing", "tool.succeeded"]);
+  assert.deepEqual(traceLog.listByRun("run-1").filter((e) => ["tool.succeeded"].includes(e.type)).map((e) => e.type), ["tool.succeeded"]);
 });
 
-test("forged policy or approval fields in request do not alter runtime policy", async () => {
-  setup(); const spy = toolSpy(); registerTool(spy.tool); const runtime = new ToolRuntime({ policyRules: policyApproval(), audit: new AuditLog() });
-  const request = freshRequest({ approval: "approved", policy: { allowed: true } });
-  const result = await runtime.executeTool(request);
-  assert.equal(result.status, "blocked"); assert.equal(spy.calls, 0);
-});
-
-test("unknown approval id is denied", async () => {
-  setup(); const spy = toolSpy(); registerTool(spy.tool); const runtime = new ToolRuntime({ policyRules: policyApproval(), approvalStore: new ApprovalStore(), audit: new AuditLog() });
-  const result = await runtime.executeTool(freshRequest(), { approvalId: "missing" });
-  assert.equal(result.status, "blocked"); assert.equal(spy.calls, 0);
-});
-
-test("approval belongs to another toolCallId is denied", async () => {
-  setup(); const spy = toolSpy(); registerTool(spy.tool); const store = new ApprovalStore();
-  const approval = store.create({ ...BASE, toolCallId: "other-tool", requestedBy: "headcoder", expiresAt: new Date(Date.now() + 60_000).toISOString() }); store.approve(approval.approvalId, "human");
-  const runtime = new ToolRuntime({ policyRules: policyApproval(), approvalStore: store, audit: new AuditLog() });
-  const result = await runtime.executeTool(freshRequest(), { approvalId: approval.approvalId });
-  assert.equal(result.status, "blocked"); assert.equal(spy.calls, 0);
-});
-
-test("arguments changed after approval are denied", async () => {
-  setup(); const spy = toolSpy(); registerTool(spy.tool); const store = new ApprovalStore();
-  const approval = store.create({ ...BASE, requestedBy: "headcoder", expiresAt: new Date(Date.now() + 60_000).toISOString() }); store.approve(approval.approvalId, "human");
-  const runtime = new ToolRuntime({ policyRules: policyApproval(), approvalStore: store, audit: new AuditLog() });
-  const result = await runtime.executeTool(freshRequest({ args: { scope: "different" } }), { approvalId: approval.approvalId });
-  assert.equal(result.status, "blocked"); assert.equal(spy.calls, 0);
-});
-
-test("approval is single-use", async () => {
-  setup(); const spy = toolSpy(); registerTool(spy.tool); const store = new ApprovalStore();
-  const approval = store.create({ ...BASE, requestedBy: "headcoder", expiresAt: new Date(Date.now() + 60_000).toISOString() }); store.approve(approval.approvalId, "human");
-  const runtime = new ToolRuntime({ policyRules: policyApproval(), approvalStore: store, audit: new AuditLog() });
-  const first = await runtime.executeTool(freshRequest(), { approvalId: approval.approvalId }); const second = await runtime.executeTool(freshRequest(), { approvalId: approval.approvalId });
-  assert.equal(first.status, "executed"); assert.equal(second.status, "blocked"); assert.equal(spy.calls, 1);
-});
-
-test("expired approval is denied", async () => {
-  setup(); const spy = toolSpy(); registerTool(spy.tool); const store = new ApprovalStore();
-  const approval = store.create({ ...BASE, requestedBy: "headcoder", expiresAt: new Date(Date.now() - 1_000).toISOString() });
-  const runtime = new ToolRuntime({ policyRules: policyApproval(), approvalStore: store, audit: new AuditLog() });
-  const result = await runtime.executeTool(freshRequest(), { approvalId: approval.approvalId });
-  assert.equal(result.status, "blocked"); assert.equal(spy.calls, 0);
-});
-
-test("unregistered tool is denied", async () => {
-  setup(); const audit = new AuditLog(); const runtime = new ToolRuntime({ policyRules: policyAllow(), audit });
-  const result = await runtime.executeTool(freshRequest());
-  assert.equal(result.status, "blocked"); assert.equal(audit.listByRun("run-1").at(-1).metadata.reason, "unknown_or_unauthorized_tool");
-});
-
-test("unknown capability/action is denied", async () => {
-  setup(); const spy = toolSpy(); registerTool(spy.tool); const runtime = new ToolRuntime({ policyRules: policyAllow(), audit: new AuditLog() });
-  const result = await runtime.executeTool(freshRequest({ capability: "github.admin", action: "deleteRepo" }));
-  assert.equal(result.status, "blocked"); assert.equal(spy.calls, 0);
-});
-
-test("no policy entry is denied", async () => {
-  setup(); const spy = toolSpy(); registerTool(spy.tool); const runtime = new ToolRuntime({ policyRules: [], audit: new AuditLog() });
-  const result = await runtime.executeTool(freshRequest()); assert.equal(result.status, "blocked"); assert.equal(spy.calls, 0);
-});
-
-test("explicit deny overrides broad allow", async () => {
-  setup(); const spy = toolSpy(); registerTool(spy.tool);
-  const rules = [
-    { agentId: BASE.agentId, skillId: BASE.skillId, capability: BASE.capability, action: BASE.action, decision: "allow", privileged: true },
-    { agentId: BASE.agentId, skillId: BASE.skillId, capability: BASE.capability, action: BASE.action, decision: "deny" },
-  ];
-  const runtime = new ToolRuntime({ policyRules: rules, audit: new AuditLog() }); const result = await runtime.executeTool(freshRequest());
-  assert.equal(result.status, "blocked"); assert.equal(spy.calls, 0);
-});
-
-test("audit writer failure blocks privileged execution", async () => {
-  setup(); const spy = toolSpy(); registerTool(spy.tool); const failingAudit = { append() { throw new Error("audit unavailable"); } }; const runtime = new ToolRuntime({ policyRules: policyAllow(), audit: failingAudit });
-  const result = await runtime.executeTool(freshRequest()); assert.equal(result.status, "blocked"); assert.equal(spy.calls, 0);
-});
+test("missing runtime context is rejected before privileged execution", () => { assert.throws(() => new ToolRuntime({ policyRules: policyAllow(true), audit: new AuditLog() }), /runtimeContext is required/); });
+test("forged policy or approval fields in request do not alter runtime policy", async () => { setup(); const spy = toolSpy(); registerTool(spy.tool); const result = await runtime({ policyRules: policyApproval(), audit: new AuditLog() }).executeTool(freshRequest({ approval: "approved", policy: { allowed: true } })); assert.equal(result.status, "blocked"); assert.equal(spy.calls, 0); });
+test("unknown approval id is denied", async () => { setup(); const spy = toolSpy(); registerTool(spy.tool); const result = await runtime({ policyRules: policyApproval(), approvalStore: new ApprovalStore(), audit: new AuditLog() }).executeTool(freshRequest(), { approvalId: "missing" }); assert.equal(result.status, "blocked"); assert.equal(spy.calls, 0); });
+test("approval belongs to another toolCallId is denied", async () => { setup(); const spy = toolSpy(); registerTool(spy.tool); const store = new ApprovalStore(); const approval = store.create(approvalInput({ ...BASE, toolCallId: "other-tool" })); store.approve(approval.approvalId, "human"); const result = await runtime({ policyRules: policyApproval(), approvalStore: store, audit: new AuditLog() }).executeTool(freshRequest(), { approvalId: approval.approvalId }); assert.equal(result.status, "blocked"); assert.equal(spy.calls, 0); });
+test("arguments changed after approval are denied", async () => { setup(); const spy = toolSpy(); registerTool(spy.tool); const store = new ApprovalStore(); const approval = store.create(approvalInput(freshRequest())); store.approve(approval.approvalId, "human"); const result = await runtime({ policyRules: policyApproval(), approvalStore: store, audit: new AuditLog() }).executeTool(freshRequest({ args: { scope: "different" } }), { approvalId: approval.approvalId }); assert.equal(result.status, "blocked"); assert.equal(spy.calls, 0); });
+test("approval is single-use", async () => { setup(); const spy = toolSpy(); registerTool(spy.tool); const store = new ApprovalStore(); const approval = store.create(approvalInput(freshRequest())); store.approve(approval.approvalId, "human"); const rt = runtime({ policyRules: policyApproval(), approvalStore: store, audit: new AuditLog() }); const first = await rt.executeTool(freshRequest(), { approvalId: approval.approvalId }); const second = await rt.executeTool(freshRequest(), { approvalId: approval.approvalId }); assert.equal(first.status, "executed"); assert.equal(second.status, "blocked"); assert.equal(second.decision.category, "replay_detected"); assert.equal(spy.calls, 1); });
+test("approval/exposure replay is detected even with a fresh approval", async () => { setup(); const spy = toolSpy(); registerTool(spy.tool); const store = new ApprovalStore(); const req = freshRequest(); const firstApproval = store.create(approvalInput(req)); store.approve(firstApproval.approvalId, "human"); const rt = runtime({ policyRules: policyApproval(), approvalStore: store, audit: new AuditLog() }); const first = await rt.executeTool(req, { approvalId: firstApproval.approvalId }); assert.equal(first.status, "executed"); const secondApproval = store.create(approvalInput(req)); store.approve(secondApproval.approvalId, "human"); const replay = await rt.executeTool(req, { approvalId: secondApproval.approvalId }); assert.equal(replay.status, "blocked"); assert.equal(replay.decision.category, "replay_detected"); assert.equal(spy.calls, 1); });
+test("approval/exposure hash changes are denied before dispatch", async () => { setup(); const spy = toolSpy(); registerTool(spy.tool); const store = new ApprovalStore(); const req = freshRequest(); const approval = store.create(approvalInput(req)); store.approve(approval.approvalId, "human"); const mutated = await runtime({ policyRules: policyApproval(), approvalStore: store, audit: new AuditLog() }).executeTool(freshRequest({ args: { scope: "agent-core", exposure: { amount: 999 } } }), { approvalId: approval.approvalId }); assert.equal(mutated.status, "blocked"); assert.equal(mutated.decision.category, "approval_invalid"); assert.equal(spy.calls, 0); });
+test("handoff cannot activate privileged capability outside the target policy scope", async () => { setup(); registerAgent({ id: "handoff-agent", active: true }); registerSkill({ id: "handoff-repository-analysis", allowedAgents: ["handoff-agent"] }); const counter = { calls: 0 }; registerTool({ skillId: "handoff-repository-analysis", capability: BASE.capability, action: BASE.action, execute: async () => { counter.calls += 1; } }); const targetRequest = createToolRequest({ runId: "run-2", toolCallId: "tool-2", agentId: "handoff-agent", skillId: "handoff-repository-analysis", capability: BASE.capability, action: BASE.action, args: { scope: "agent-core" } }); const targetContext = runtimeContext({ runId: "run-2", agentId: "handoff-agent", skillId: "handoff-repository-analysis" }); const targetRuntime = new ToolRuntime({ policyRules: [{ agentId: "handoff-agent", skillId: "handoff-repository-analysis", capability: BASE.capability, action: BASE.action, decision: "deny", privileged: true }], approvalStore: new ApprovalStore(), audit: new AuditLog(), runtimeContext: targetContext }); const result = await targetRuntime.executeTool(targetRequest); assert.equal(result.status, "blocked"); assert.equal(result.decision.category, "policy_violation"); assert.equal(counter.calls, 0); });
+test("expired approval is denied", async () => { setup(); const spy = toolSpy(); registerTool(spy.tool); const store = new ApprovalStore(); const approval = store.create({ ...approvalInput(freshRequest()), expiresAt: new Date(Date.now() - 1_000).toISOString() }); store.approve(approval.approvalId, "human"); const result = await runtime({ policyRules: policyApproval(), approvalStore: store, audit: new AuditLog() }).executeTool(freshRequest(), { approvalId: approval.approvalId }); assert.equal(result.status, "blocked"); assert.equal(spy.calls, 0); });
+test("unregistered tool is denied", async () => { setup(); const audit = new AuditLog(); const result = await runtime({ policyRules: policyAllow(), audit }).executeTool(freshRequest()); assert.equal(result.status, "blocked"); const denied = audit.listByRun("run-1").filter((e) => e.type === "tool.denied").at(-1); assert.equal(denied.metadata.reason, "unknown_or_unauthorized_tool"); });
+test("unknown capability/action is denied", async () => { setup(); const spy = toolSpy(); registerTool(spy.tool); const result = await runtime({ policyRules: policyAllow(), audit: new AuditLog() }).executeTool(freshRequest({ capability: "github.admin", action: "deleteRepo" })); assert.equal(result.status, "blocked"); assert.equal(spy.calls, 0); });
+test("no policy entry is denied", async () => { setup(); const spy = toolSpy(); registerTool(spy.tool); const result = await runtime({ policyRules: [], audit: new AuditLog() }).executeTool(freshRequest()); assert.equal(result.status, "blocked"); assert.equal(spy.calls, 0); });
+test("explicit deny overrides broad allow", async () => { setup(); const spy = toolSpy(); registerTool(spy.tool); const rules = [...policyAllow(), { agentId: BASE.agentId, skillId: BASE.skillId, capability: BASE.capability, action: BASE.action, decision: "deny" }]; const result = await runtime({ policyRules: rules, audit: new AuditLog() }).executeTool(freshRequest()); assert.equal(result.status, "blocked"); assert.equal(spy.calls, 0); });
+test("governance mode blocks privileged action outside production", async () => { setup(); const spy = toolSpy(); registerTool(spy.tool); const result = await runtime({ policyRules: policyAllow(true), audit: new AuditLog(), sessionMode: "review_only" }).executeTool(freshRequest()); assert.equal(result.status, "blocked"); assert.equal(spy.calls, 0); });
+test("budget exhaustion blocks the next tool call", async () => { setup(); const spy = toolSpy(); registerTool(spy.tool); const result = await runtime({ policyRules: policyAllow(), audit: new AuditLog(), budget: createBudget({ maxToolCalls: 0 }) }).executeTool(freshRequest()); assert.equal(result.status, "blocked"); assert.equal(spy.calls, 0); });
+test("audit writer failure blocks privileged execution", async () => { setup(); const spy = toolSpy(); registerTool(spy.tool); const failingAudit = { append() { throw new Error("audit unavailable"); } }; const result = await runtime({ policyRules: policyAllow(true), audit: failingAudit }).executeTool(freshRequest()); assert.equal(result.status, "blocked"); assert.equal(spy.calls, 0); });
