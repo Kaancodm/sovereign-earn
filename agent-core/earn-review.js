@@ -1,5 +1,7 @@
 "use strict";
 
+const { createHash } = require("node:crypto");
+
 const SKILL_ID = "earn.review";
 const SKILL_VERSION = "1.0.0";
 const CAPABILITY = "earnings.read";
@@ -14,12 +16,23 @@ function assertSnapshot(snapshot) {
   if (!Array.isArray(snapshot.records)) throw new TypeError("records must be an array");
 }
 
+function canonicalize(value) {
+  if (value === null || typeof value !== "object") return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(canonicalize).join(",")}]`;
+  return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${canonicalize(value[key])}`).join(",")}}`;
+}
+
+function calculationIdentity(snapshot) {
+  return createHash("sha256")
+    .update(canonicalize({ earningsSnapshotId: snapshot.earningsSnapshotId, earningsSnapshotVersion: snapshot.earningsSnapshotVersion, calculationVersion: snapshot.calculationVersion }))
+    .digest("hex");
+}
+
 function calculateEarnings(snapshot, options = {}) {
   assertSnapshot(snapshot);
-  // Pure/read-only reference implementation. No persistence, network, approval, or payment side effects.
   const amount = snapshot.records.reduce((sum, record) => sum + Number(record.amount || 0), 0);
   return Object.freeze({
-    calculationId: `${snapshot.earningsSnapshotId}:${snapshot.calculationVersion}`,
+    calculationId: calculationIdentity(snapshot),
     earningsSnapshotId: snapshot.earningsSnapshotId,
     earningsSnapshotVersion: snapshot.earningsSnapshotVersion,
     calculationVersion: snapshot.calculationVersion,
