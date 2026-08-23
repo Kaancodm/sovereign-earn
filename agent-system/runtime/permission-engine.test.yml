@@ -1,0 +1,39 @@
+version: 1
+tests:
+  - id: read-github-allowed
+    agent: headcoder
+    capability: github.read
+    expected: allow
+  - id: research-agent-cannot-write-github
+    agent: research-agent
+    capability: github.write_branch
+    expected: deny
+  - id: partnership-draft-allowed
+    agent: partnership-agent
+    capability: mail.draft
+    expected: allow
+  - id: partnership-send-requires-approval
+    agent: partnership-agent
+    capability: mail.send
+    expected: approval_required
+  - id: production-merge-requires-approval
+    agent: headcoder
+    capability: github.merge_production
+    expected: approval_required
+  - id: production-deploy-requires-approval
+    agent: tech-agent
+    capability: deployment.production
+    expected: approval_required
+  - id: secret-write-requires-approval
+    agent: tech-agent
+    capability: secrets.write
+    expected: approval_required
+  - id: unknown-capability-denied
+    agent: headcoder
+    capability: unknown.capability
+    expected: deny
+  - id: handover-does-not-escalate
+    agent: research-agent
+    handover_to: headcoder
+    capability: github.write_branch
+    expected: evaluate-receiver-permission-not-sender
