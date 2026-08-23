@@ -15,10 +15,10 @@ function runtime() {
   const runId = "p1-earn-review-run";
   const agentId = "sovereign-earn-orchestrator";
   const contextManifest = { contextVersion: "1.0.0", architectureVersion: "1.0.0", policyVersion: "1.0.0", flowVersion: "1.0.0", workspaceMapVersion: "1.0.0", runId, agentId, sessionId: "session-1", dataClassification: "internal" };
-  const runtimeContext = { runId, agentId, contextManifest, governanceContext: { mode: "review_only", identity: { userId: "user-1", role: "user" }, scopes: ["earnings.read"], budget: { limits: { toolCalls: 1 }, usage: { toolCalls: 0 } }, modeRules: {} }, budget: { limits: { toolCalls: 1 }, usage: { toolCalls: 0 } }, traceContext: { traceId: "trace-p1" } };
+  const runtimeContext = { runId, agentId, contextManifest, governanceContext: { identity: { userId: "user-1", role: "user" }, sessionMode: "review_only", scopes: [CAPABILITY], budget: { limits: { toolCalls: 1 }, usage: { toolCalls: 0 } }, modeRules: { allowedRisks: ["read", "compute"], allowExecution: false } }, budget: { limits: { toolCalls: 1 }, usage: { toolCalls: 0 } }, traceContext: { traceId: "trace-p1" } };
   const audit = [];
   const trace = [];
-  const rt = new ToolRuntime({ runtimeContext, policyRules: [{ agentId, skillId: SKILL_ID, capability: CAPABILITY, action: ACTION, decision: "ALLOW", privileged: false, requiresApproval: false }], audit: { append: async e => audit.push(e) }, traceLog: { append: async e => trace.push(e) } });
+  const rt = new ToolRuntime({ runtimeContext, policyRules: [{ agentId, skillId: SKILL_ID, capability: CAPABILITY, action: ACTION, decision: "allow", privileged: false, requiresApproval: false }], audit: { append: async e => audit.push(e) }, traceLog: { append: async e => trace.push(e) } });
   return { rt, runId, agentId, audit, trace, get calls() { return calls; } };
 }
 
