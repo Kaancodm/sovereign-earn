@@ -1,0 +1,144 @@
+version: 1
+name: sovereign-agent-permissions
+
+# Sovereign uses least privilege. Read/analyze/draft are autonomous by default.
+# External, production, destructive, secret, financial, and bulk actions require approval.
+
+risk_levels:
+  read: 0
+  analyze: 1
+  draft: 2
+  modify: 3
+  external: 4
+  destructive: 5
+
+approval:
+  read: false
+  analyze: false
+  draft: false
+  modify: false
+  external: true
+  destructive: true
+
+agents:
+  headcoder:
+    role: lead engineering agent
+    plugins:
+      github: [read, write, execute]
+      openai_platform: [read, draft]
+      exa: [read]
+      vercel: [read, write, execute]
+    approval_required:
+      - merge_to_main
+      - push_to_main
+      - production_deploy
+      - production_configuration_change
+      - secret_change
+      - destructive_repository_action
+
+  tech:
+    role: infrastructure and application engineering
+    plugins:
+      github: [read, write, execute]
+      openai_platform: [read, draft]
+      exa: [read]
+      vercel: [read, write, execute]
+    approval_required:
+      - production_deploy
+      - production_configuration_change
+      - secret_change
+      - destructive_data_action
+      - cost_increasing_operation
+
+  design:
+    role: UX/UI and game-theme agent
+    plugins:
+      github: [read, write]
+      openai_platform: [read, draft]
+      exa: [read]
+      vercel: [read]
+    approval_required:
+      - production_deploy
+      - merge_to_main
+
+  security:
+    role: security review and release gate
+    plugins:
+      github: [read, write]
+      openai_platform: [read]
+      exa: [read]
+      vercel: [read]
+    approval_required:
+      - production_deploy
+      - secret_change
+      - destructive_action
+    special_rules:
+      - can_block_release: true
+      - cannot_silently_override_other_agents: true
+      - security_fixes_to_production_require_approval: true
+
+  research:
+    role: research and intelligence
+    plugins:
+      github: [read]
+      openai_platform: [read]
+      exa: [read]
+      reverse_contact: [read]
+    approval_required: []
+
+  partnership:
+    role: partner, sponsor, and business-development agent
+    plugins:
+      github: [read]
+      openai_platform: [read, draft]
+      superhuman_mail: [read, draft, execute]
+      exa: [read]
+      reverse_contact: [read]
+    approval_required:
+      - send_external_email
+      - reply_external_email
+      - bulk_outreach
+      - send_follow_up
+      - create_external_commitment
+
+  creator_media:
+    role: creator and community-content agent
+    plugins:
+      github: [read, write]
+      openai_platform: [read, draft]
+      superhuman_mail: [read, draft]
+      exa: [read]
+      reverse_contact: [read]
+    approval_required:
+      - external_email_send
+      - production_deploy
+      - merge_to_main
+
+  orchestrator:
+    role: cross-agent coordinator
+    plugins:
+      github: [read]
+      openai_platform: [read]
+      superhuman_mail: [read, draft]
+      exa: [read]
+      reverse_contact: [read]
+      vercel: [read]
+    # The orchestrator coordinates agents but does not inherit their write privileges.
+    approval_required:
+      - any_external_action
+      - any_destructive_action
+      - any_production_action
+
+rules:
+  - name: least_privilege
+    description: Agents receive only capabilities required by their role.
+  - name: approval_boundary
+    description: External, production, destructive, secret, financial, and bulk actions require explicit approval.
+  - name: no_implicit_escalation
+    description: An agent cannot grant itself another agent's permissions.
+  - name: no_secret_exposure
+    description: Secrets and API keys must never be committed, emailed, or included in model-visible output.
+  - name: production_gate
+    description: Production changes require explicit approval even if a tool technically permits them.
+  - name: auditability
+    description: Consequential actions should record agent, skill, tool, target, requested action, approval, and result.
