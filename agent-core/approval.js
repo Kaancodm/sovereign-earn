@@ -1,3 +1,5 @@
+const { randomUUID } = require('node:crypto');
+
 const STATES = Object.freeze({
   PENDING: 'PENDING',
   APPROVED: 'APPROVED',
@@ -16,7 +18,7 @@ function createApproval({ runId, agentId, capability, action }) {
   if (!capability) throw new Error('capability is required');
   if (!action) throw new Error('action is required');
 
-  return { id: crypto.randomUUID(), runId, agentId, capability, action, state: STATES.PENDING };
+  return { id: randomUUID(), runId, agentId, capability, action, state: STATES.PENDING };
 }
 
 function transitionApproval(approval, nextState) {
