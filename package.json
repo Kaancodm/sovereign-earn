@@ -4,11 +4,12 @@
   "private": true,
   "description": "Sovereign Earn – MU: Dark Epoch Web Companion & Earn Hub",
   "engines": {
-    "node": "20"
+    "node": "22"
   },
   "scripts": {
     "test": "node scripts/syntax-check.js",
     "check": "node scripts/syntax-check.js && node scripts/staging-check.js",
-    "check:staging": "node scripts/staging-check.js"
+    "check:staging": "node scripts/staging-check.js",
+    "test:agent-core": "node --test agent-core/*.test.js"
   }
 }
