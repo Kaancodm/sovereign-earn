@@ -1,4 +1,5 @@
 version: 1
+policy: least-privilege
 
 # Action-level gates. Agent identity never lowers a gate.
 gates:
@@ -30,9 +31,24 @@ protected_actions:
   - merge_production_pr
   - production_deploy
   - change_production_secrets
+  - change_production_permissions
   - delete_project_data
   - change_billing
   - rotate_or_expose_credentials
+
+rules:
+  - id: fail-closed
+    description: Missing capability, permission, or approval stops execution.
+  - id: no-implicit-authority
+    description: Agent handovers never grant additional authority.
+  - id: action-based-approval
+    description: Approval follows the action and target system, not the requesting agent.
+  - id: immediate-send-approval
+    description: External communication requires approval immediately before sending.
+  - id: production-gate
+    description: Production merges and deployments require explicit approval.
+  - id: secret-protection
+    description: Secrets and credentials must never be committed, logged, or copied into ordinary task context.
 
 approval_record:
   required_fields:
