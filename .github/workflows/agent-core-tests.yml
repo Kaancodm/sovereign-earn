@@ -1,15 +1,17 @@
-name: Sovereign Agent Core Tests
+name: Sovereign Agent Core and Skills v1 Tests
 
 on:
   push:
     branches:
       - agent-core-trust-boundary-hardening
+      - skills-v1-foundation
   pull_request:
     branches:
       - agent-core-trust-boundary-hardening
+      - skills-v1-foundation
 
 jobs:
-  agent-core:
+  agent-core-and-skills:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -29,5 +31,5 @@ jobs:
             echo "No package-lock.json present; skipping npm ci."
           fi
 
-      - name: Run exact Agent Core test command
+      - name: Run exact Agent Core and Skills v1 test command
         run: npm run test:agent-core
