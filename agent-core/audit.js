@@ -1,22 +1,26 @@
-export function createAuditEvent({ runId, type, actor, target, outcome, metadata = {} }) {
-  if (!runId) throw new Error('runId is required');
-  if (!type) throw new Error('type is required');
-  if (!actor) throw new Error('actor is required');
-  if (!outcome) throw new Error('outcome is required');
+"use strict";
+
+const { randomUUID } = require("node:crypto");
+
+function createAuditEvent({ runId, type, actor, target = null, outcome, metadata = {} }) {
+  if (!runId) throw new Error("runId is required");
+  if (!type) throw new Error("type is required");
+  if (!actor) throw new Error("actor is required");
+  if (!outcome) throw new Error("outcome is required");
 
   return Object.freeze({
-    id: crypto.randomUUID(),
+    id: randomUUID(),
     timestamp: new Date().toISOString(),
     runId,
     type,
     actor,
-    target: target ?? null,
+    target,
     outcome,
     metadata: Object.freeze({ ...metadata }),
   });
 }
 
-export class AuditLog {
+class AuditLog {
   #events = [];
 
   append(event) {
@@ -32,3 +36,5 @@ export class AuditLog {
     return [...this.#events];
   }
 }
+
+module.exports = { createAuditEvent, AuditLog };
