@@ -1,0 +1,30 @@
+name: Sovereign Agent Core Tests
+
+on:
+  push:
+    branches:
+      - sovereign-v1-harness-analysis
+  pull_request:
+    branches:
+      - sovereign-v1-harness-analysis
+
+jobs:
+  agent-core:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Run agent-core tests
+        run: |
+          node agent-core/contracts.test.js
+          node agent-core/orchestrator.test.js
+          node agent-core/handoff.test.js
+          node agent-core/approval.test.js
+          node agent-core/tool-runtime.test.js
+          node agent-core/e2e.test.js
