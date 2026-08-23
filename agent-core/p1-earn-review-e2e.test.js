@@ -14,7 +14,7 @@ function runtime() {
   registerTool({ skillId: SKILL_ID, capability: CAPABILITY, action: ACTION, execute: async (args) => { calls += 1; return calculateEarnings(args.snapshot, args.options); } });
   const runId = "p1-earn-review-run";
   const agentId = "sovereign-earn-orchestrator";
-  const contextManifest = { contextVersion: "1.0.0", architectureVersion: "1.0.0", policyVersion: "1.0.0", flowVersion: "1.0.0", workspaceMapVersion: "1.0.0", runId, agentId, sessionId: "session-1", dataClassification: "internal" };
+  const contextManifest = { contextVersion: "1.0.0", architectureVersion: "1.0.0", policyVersion: "1.0.0", flowVersion: "1.0.0", workspaceMapVersion: "1.0.0", runId, agentId, sessionId: "session-1", sessionMode: "review_only", dataClassification: { snapshot: "model_restricted" } };
   const runtimeContext = { runId, agentId, contextManifest, governanceContext: { identity: { userId: "user-1", role: "user" }, sessionMode: "review_only", scopes: [CAPABILITY], budget: { limits: { toolCalls: 1 }, usage: { toolCalls: 0 } }, modeRules: { allowedRisks: ["read", "compute"], allowExecution: false } }, budget: { limits: { toolCalls: 1 }, usage: { toolCalls: 0 } }, traceContext: { traceId: "trace-p1" } };
   const audit = [];
   const trace = [];
