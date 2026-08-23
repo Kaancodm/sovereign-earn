@@ -1,0 +1,30 @@
+version: 1
+required:
+  - task_id
+  - objective
+  - scope
+  - domain
+  - risk
+  - status
+fields:
+  task_id: stable identifier
+  objective: normalized goal
+  scope: systems/files/entities/time window in scope
+  domain: core|engineering|design|security|research|business|coordination
+  risk: integer 0-5
+  agent: selected agent identifier
+  skill: selected skill identifier
+  capabilities: minimum capabilities required
+  approval: none|required|approved|rejected
+  status: intake|planned|blocked|needs_approval|executing|verifying|handover|complete|failed
+  facts: verified observations
+  assumptions: explicitly unverified assumptions
+  artifacts: branches/issues/PRs/drafts/reports
+  errors: failures with evidence
+  result: verified outcome
+rules:
+  - unknown_fields_must_not_grant_authority: true
+  - permissions_are_resolved_outside_task_input: true
+  - approval_is_bound_to_exact_action_and_target: true
+  - approval_does_not_grant_new_agent_permissions: true
+  - failed_verification_cannot_set_complete: true
