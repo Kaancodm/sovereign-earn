@@ -1,0 +1,25 @@
+version: 1
+capabilities:
+  github.read: {risk: 0}
+  github.branch_create: {risk: 1}
+  github.write_branch: {risk: 2}
+  github.pull_request: {risk: 2}
+  github.merge_production: {risk: 4, approval: required}
+  github.delete: {risk: 5, approval: required}
+  mail.read: {risk: 0}
+  mail.draft: {risk: 1}
+  mail.send: {risk: 4, approval: required}
+  research.search: {risk: 0}
+  research.extract: {risk: 0}
+  contact.enrich: {risk: 1}
+  openai.read: {risk: 0}
+  openai.configure: {risk: 4, approval: required}
+  deployment.preview: {risk: 2}
+  deployment.production: {risk: 5, approval: required}
+  secrets.read: {risk: 5, approval: required}
+  secrets.write: {risk: 5, approval: required}
+  billing.change: {risk: 5, approval: required}
+rules:
+  - unknown_capability_must_fail_closed: true
+  - capability_does_not_override_agent_permission: true
+  - approval_is_required_when_declared_by_capability_or_policy: true
