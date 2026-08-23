@@ -6,7 +6,7 @@ const { AuditLog, createAuditEvent } = require("./audit");
 const { createContextManifest } = require("./context");
 const { evaluateGovernance } = require("./governance");
 const { consume } = require("./budget");
-const { createTraceEvent } = require("./tracing");
+const { createTraceEvent, TraceLog } = require("./tracing");
 const { classifyError } = require("./failure-recovery");
 
 function requireRuntimeContext(runtimeContext) {
@@ -22,10 +22,11 @@ function requireRuntimeContext(runtimeContext) {
 }
 
 class ToolRuntime {
-  constructor({ policyRules = [], approvalStore = new ApprovalStore(), audit = new AuditLog(), runtimeContext } = {}) {
+  constructor({ policyRules = [], approvalStore = new ApprovalStore(), audit = new AuditLog(), traceLog = new TraceLog(), runtimeContext } = {}) {
     this.policyRules = Object.freeze([...policyRules]);
     this.approvalStore = approvalStore;
     this.audit = audit;
+    this.traceLog = traceLog;
     this.runtimeContext = requireRuntimeContext(runtimeContext);
     this.budget = this.runtimeContext.budget;
   }
@@ -36,7 +37,8 @@ class ToolRuntime {
   }
 
   async trace(type, fields = {}) {
-    return this.record(createTraceEvent(this.runtimeContext.traceContext, type, fields));
+    const event = createTraceEvent(this.runtimeContext.traceContext, type, fields);
+    return this.traceLog.append(event);
   }
 
   async deny(request, reason) {
