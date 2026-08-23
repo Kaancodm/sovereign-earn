@@ -31,5 +31,5 @@ jobs:
             echo "No package-lock.json present; skipping npm ci."
           fi
 
-      - name: Run exact Agent Core and Skills v1 test command
+      - name: Run Agent Core, Skills v1, and Harness P0 tests
         run: npm run test:agent-core
