@@ -1,0 +1,47 @@
+version: 1
+
+# Action-level gates. Agent identity never lowers a gate.
+gates:
+  read:
+    risk_level: 0
+    approval: false
+  analyze:
+    risk_level: 1
+    approval: false
+  draft:
+    risk_level: 2
+    approval: false
+  modify:
+    risk_level: 3
+    approval: false
+    audit: true
+  external_action:
+    risk_level: 4
+    approval: true
+    audit: true
+  destructive:
+    risk_level: 5
+    approval: true
+    explicit_confirmation: true
+    audit: true
+
+protected_actions:
+  - send_external_email
+  - merge_production_pr
+  - production_deploy
+  - change_production_secrets
+  - delete_project_data
+  - change_billing
+  - rotate_or_expose_credentials
+
+approval_record:
+  required_fields:
+    - approval_id
+    - requested_by
+    - action
+    - target
+    - risk_level
+    - reason
+    - expected_effect
+    - rollback_or_recovery
+    - approval_status
