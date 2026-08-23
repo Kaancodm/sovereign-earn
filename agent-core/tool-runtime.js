@@ -51,6 +51,11 @@ class ToolRuntime {
       throw error;
     }
 
+    // Consume before dispatch. This makes approval one-shot even across crashes/retries;
+    // a failed tool call therefore requires a fresh approval rather than permitting an
+    // automatic retry against the same privileged authorization.
+    if (approval) this.approvalStore.consume(approval.approvalId);
+
     let result;
     try {
       result = await tool.execute(request.args || {});
@@ -66,7 +71,6 @@ class ToolRuntime {
       throw error;
     }
 
-    if (approval) this.approvalStore.consume(approval.approvalId);
     return Object.freeze({ status: "executed", result });
   }
 }
