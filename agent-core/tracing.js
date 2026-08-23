@@ -14,4 +14,12 @@ function createTraceEvent(context, type, fields = {}) {
   if (!TRACE_EVENTS.includes(type)) throw new TypeError("trace event type is invalid");
   return Object.freeze({ ...context, type, timestamp: new Date().toISOString(), ...fields });
 }
-module.exports = { TRACE_EVENTS, createTraceContext, createTraceEvent };
+
+class TraceLog {
+  #events = [];
+  append(event) { this.#events.push(event); return event; }
+  listByRun(runId) { return this.#events.filter((event) => event.runId === runId); }
+  all() { return [...this.#events]; }
+}
+
+module.exports = { TRACE_EVENTS, createTraceContext, createTraceEvent, TraceLog };
