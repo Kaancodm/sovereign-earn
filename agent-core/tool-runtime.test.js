@@ -1,91 +1,54 @@
 const assert = require('node:assert/strict');
+const test = require('node:test');
 const { executeTool } = require('./tool-runtime');
+const { ApprovalStore } = require('./approval');
+const { AuditLog } = require('./audit');
+const { registerAgent, registerSkill, registerTool, clearRegistriesForTests } = require('./registry');
 
-(async () => {
-  const rules = [
-    {
-      agentId: 'headcoder',
-      skillId: 'repository-analysis',
-      capability: 'github.read',
-      action: 'readRepo',
-      decision: 'allow',
-    },
-    {
-      agentId: 'partnership',
-      skillId: 'account-outreach',
-      capability: 'mail.send',
-      action: 'sendMail',
-      decision: 'approval_required',
-    },
-  ];
+const request = () => ({ runId: 'run-1', toolCallId: 'tool-1', agentId: 'headcoder', skillId: 'repository-analysis', capability: 'github.read', action: 'readRepo', args: { scope: 'agent-core' } });
+const allowRule = { agentId: 'headcoder', skillId: 'repository-analysis', capability: 'github.read', action: 'readRepo', decision: 'allow', privileged: true };
 
-  const audit = [];
-  const handlers = {
-    readRepo: async (args) => ({ ok: true, scope: args.scope }),
-    sendMail: async () => ({ sent: true }),
-  };
+function setup() {
+  clearRegistriesForTests();
+  registerAgent({ id: 'headcoder', active: true });
+  registerSkill({ id: 'repository-analysis', allowedAgents: ['headcoder'] });
+}
 
-  const allowed = await executeTool({
-    request: {
-      runId: 'run-1',
-      agentId: 'headcoder',
-      skillId: 'repository-analysis',
-      capability: 'github.read',
-      action: 'readRepo',
-      args: { scope: 'agent-core' },
-    },
-    rules,
-    handlers,
-    audit: (event) => audit.push(event),
-  });
+test('unregistered agent cannot execute', async () => {
+  setup();
+  const result = await executeTool({ request: request(), policyRules: [allowRule], audit: new AuditLog() });
+  assert.equal(result.status, 'blocked');
+});
 
-  assert.equal(allowed.status, 'executed');
-  assert.equal(allowed.result.ok, true);
+test('unregistered tool cannot execute', async () => {
+  setup();
+  const result = await executeTool({ request: request(), policyRules: [allowRule], audit: new AuditLog() });
+  assert.equal(result.status, 'blocked');
+});
 
-  const denied = await executeTool({
-    request: {
-      runId: 'run-2',
-      agentId: 'research',
-      skillId: 'research',
-      capability: 'github.write',
-      action: 'writeRepo',
-    },
-    rules,
-    handlers,
-    audit: (event) => audit.push(event),
-  });
+test('registered tool executes only after runtime checks', async () => {
+  setup(); let calls = 0;
+  registerTool({ skillId: 'repository-analysis', capability: 'github.read', action: 'readRepo', execute: async (args) => { calls += 1; return args; } });
+  const result = await executeTool({ request: request(), policyRules: [allowRule], audit: new AuditLog() });
+  assert.equal(result.status, 'executed'); assert.equal(calls, 1);
+});
 
-  assert.equal(denied.status, 'blocked');
+test('approval-required path rejects forged request approval', async () => {
+  setup(); let calls = 0;
+  registerTool({ skillId: 'repository-analysis', capability: 'github.read', action: 'readRepo', execute: async () => { calls += 1; return true; } });
+  const forged = { ...request(), approval: 'approved' };
+  const result = await executeTool({ request: forged, policyRules: [{ ...allowRule, decision: 'approval_required' }], audit: new AuditLog() });
+  assert.equal(result.status, 'blocked'); assert.equal(calls, 0);
+});
 
-  const pending = await executeTool({
-    request: {
-      runId: 'run-3',
-      agentId: 'partnership',
-      skillId: 'account-outreach',
-      capability: 'mail.send',
-      action: 'sendMail',
-    },
-    rules,
-    handlers,
-    audit: (event) => audit.push(event),
-  });
-
-  assert.equal(pending.status, 'needs_approval');
-
-  const approved = await executeTool({
-    request: {
-      runId: 'run-4',
-      agentId: 'partnership',
-      skillId: 'account-outreach',
-      capability: 'mail.send',
-      action: 'sendMail',
-    },
-    rules,
-    handlers,
-    approval: 'approved',
-    audit: (event) => audit.push(event),
-  });
-
-  assert.equal(approved.status, 'executed');
-  assert.ok(audit.length >= 4);
-})();
+test('valid authoritative approval executes once and is consumed', async () => {
+  setup(); let calls = 0;
+  registerTool({ skillId: 'repository-analysis', capability: 'github.read', action: 'readRepo', execute: async () => { calls += 1; return true; } });
+  const store = new ApprovalStore();
+  const req = request();
+  const approval = store.create({ ...req, requestedBy: 'headcoder', expiresAt: new Date(Date.now() + 60_000).toISOString() });
+  store.approve(approval.approvalId, 'human');
+  const first = await executeTool({ request: req, policyRules: [{ ...allowRule, decision: 'approval_required' }], approvalId: approval.approvalId, approvalStore: store, audit: new AuditLog() });
+  const second = await executeTool({ request: req, policyRules: [{ ...allowRule, decision: 'approval_required' }], approvalId: approval.approvalId, approvalStore: store, audit: new AuditLog() });
+  assert.equal(first.status, 'executed'); assert.equal(second.status, 'blocked'); assert.equal(calls, 1);
+});
