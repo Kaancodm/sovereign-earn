@@ -1,0 +1,35 @@
+version: 1
+
+# Deterministic routing table. First match wins after capability/permission checks.
+routes:
+  - domain: security
+    keywords: [security, vulnerability, audit, threat, dependency risk, secret]
+    agent: security-agent
+    default_skill: repository-analysis
+  - domain: engineering
+    keywords: [code, bug, implement, refactor, test, github, function, api]
+    agent: headcoder
+    default_skill: repository-analysis
+  - domain: research
+    keywords: [research, investigate, compare, find, market, competitor, technology]
+    agent: research-agent
+    default_skill: project-briefing
+  - domain: business
+    keywords: [partner, sponsor, outreach, company, contact, collaboration]
+    agent: partnership-agent
+    default_skill: partner-research
+  - domain: coordination
+    keywords: [status, briefing, prioritize, next steps, open loops]
+    agent: sovereign-core
+    default_skill: project-briefing
+
+default:
+  agent: sovereign-core
+  skill: project-intake
+
+rules:
+  - prefer_least_privileged_capable_agent: true
+  - verify_capabilities_before_tool_use: true
+  - verify_approval_before_external_action: true
+  - never_inherit_permissions_through_handover: true
+  - fail_closed_on_unknown_action: true
