@@ -1,0 +1,35 @@
+version: 1
+agents:
+  sovereign-core:
+    domains: [coordination, core]
+    skills: [project-intake, project-briefing, open-loops]
+    mode: orchestrator
+  headcoder:
+    domains: [engineering]
+    skills: [repository-analysis]
+    mode: implementation
+  tech-agent:
+    domains: [engineering]
+    skills: [repository-analysis]
+    mode: implementation
+  design-agent:
+    domains: [design]
+    skills: [repository-analysis]
+    mode: implementation
+  security-agent:
+    domains: [security]
+    skills: [repository-analysis]
+    mode: analysis
+  research-agent:
+    domains: [research]
+    skills: [project-briefing, repository-analysis]
+    mode: research
+  partnership-agent:
+    domains: [business]
+    skills: [partner-research]
+    mode: business-research
+rules:
+  - registry_is_not_a_permission_grant: true
+  - agent_permissions_must_be_loaded_from_agent_permissions_policy: true
+  - unknown_agent_must_fail_closed: true
+  - skill_must_be_registered_before_execution: true
