@@ -1,49 +1,22 @@
-"use strict";
+'use strict';
 
-const agents = new Map();
-const skills = new Map();
+function createRegistry({ agents = [], skills = [], tools = [] } = {}) {
+  const agentTable = new Map(agents.map(agent => [agent.agentId, Object.freeze({ ...agent })]));
+  const skillTable = new Map(skills.map(skill => [`${skill.agentId}\u0000${skill.skillId}`, Object.freeze({ ...skill })]));
+  const toolTable = new Map(tools.map(tool => [`${tool.skillId}\u0000${tool.capability}\u0000${tool.action}`, Object.freeze({ ...tool })]));
 
-function registerAgent(agent) {
-  if (!agent?.id) throw new Error("agent.id is required");
-  if (agents.has(agent.id)) throw new Error(`agent already registered: ${agent.id}`);
-  agents.set(agent.id, Object.freeze({ ...agent }));
-  return agents.get(agent.id);
+  return Object.freeze({
+    lookupAgent(agentId) {
+      const agent = agentTable.get(agentId);
+      return agent && agent.active === true ? agent : null;
+    },
+    lookupSkill(agentId, skillId) {
+      return skillTable.get(`${agentId}\u0000${skillId}`) || null;
+    },
+    resolveTool(skillId, capability, action) {
+      return toolTable.get(`${skillId}\u0000${capability}\u0000${action}`) || null;
+    },
+  });
 }
 
-function getAgent(id) {
-  return agents.get(id);
-}
-
-function listAgents() {
-  return [...agents.values()];
-}
-
-function registerSkill(skill) {
-  if (!skill?.id) throw new Error("skill.id is required");
-  if (skills.has(skill.id)) throw new Error(`skill already registered: ${skill.id}`);
-  skills.set(skill.id, Object.freeze({ ...skill }));
-  return skills.get(skill.id);
-}
-
-function getSkill(id) {
-  return skills.get(id);
-}
-
-function listSkills() {
-  return [...skills.values()];
-}
-
-function clearRegistriesForTests() {
-  agents.clear();
-  skills.clear();
-}
-
-module.exports = {
-  registerAgent,
-  getAgent,
-  listAgents,
-  registerSkill,
-  getSkill,
-  listSkills,
-  clearRegistriesForTests,
-};
+module.exports = { createRegistry };
