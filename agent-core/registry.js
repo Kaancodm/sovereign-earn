@@ -1,37 +1,49 @@
+"use strict";
+
 const agents = new Map();
 const skills = new Map();
 
-export function registerAgent(agent) {
-  if (!agent?.id) throw new Error('agent.id is required');
+function registerAgent(agent) {
+  if (!agent?.id) throw new Error("agent.id is required");
   if (agents.has(agent.id)) throw new Error(`agent already registered: ${agent.id}`);
   agents.set(agent.id, Object.freeze({ ...agent }));
   return agents.get(agent.id);
 }
 
-export function getAgent(id) {
+function getAgent(id) {
   return agents.get(id);
 }
 
-export function listAgents() {
+function listAgents() {
   return [...agents.values()];
 }
 
-export function registerSkill(skill) {
-  if (!skill?.id) throw new Error('skill.id is required');
+function registerSkill(skill) {
+  if (!skill?.id) throw new Error("skill.id is required");
   if (skills.has(skill.id)) throw new Error(`skill already registered: ${skill.id}`);
   skills.set(skill.id, Object.freeze({ ...skill }));
   return skills.get(skill.id);
 }
 
-export function getSkill(id) {
+function getSkill(id) {
   return skills.get(id);
 }
 
-export function listSkills() {
+function listSkills() {
   return [...skills.values()];
 }
 
-export function clearRegistriesForTests() {
+function clearRegistriesForTests() {
   agents.clear();
   skills.clear();
 }
+
+module.exports = {
+  registerAgent,
+  getAgent,
+  listAgents,
+  registerSkill,
+  getSkill,
+  listSkills,
+  clearRegistriesForTests,
+};
