@@ -19,11 +19,16 @@ for (const [name, mutate] of [
   ['unknown approval id', ({ approval }) => ({ approvalId: 'does-not-exist', approval })],
   ['approval for another toolCallId', ({ approval, req }) => ({ approvalId: approval.approvalId, request: { ...req, toolCallId: 'other-tool' } })],
   ['changed arguments after approval', ({ approval, req }) => ({ approvalId: approval.approvalId, request: { ...req, args: { scope: 'different-scope' } } })],
-  ['rejected approval', ({ store, approval }) => { store.reject(approval.approvalId); return { approvalId: approval.approvalId }; }],
+  ['rejected approval', ({ store }) => { const req = request(); const pending = store.create({ ...req, requestedBy: 'headcoder', expiresAt: new Date(Date.now() + 60_000).toISOString() }); store.reject(pending.approvalId); return { approvalId: pending.approvalId }; }],
 ]) {
   test(`privileged execution denies ${name}`, async () => {
     const counter = { calls: 0 }; const { runtime, store } = approvedRuntime(counter); const req = request();
-    const approval = store.create({ ...req, requestedBy: 'headcoder', expiresAt: new Date(Date.now() + 60_000).toISOString() }); store.approve(approval.approvalId, 'human');
+    let approval;
+    if (name === 'rejected approval') {
+      const pending = store.get(mutate({ store }).approvalId); approval = pending;
+    } else {
+      approval = store.create({ ...req, requestedBy: 'headcoder', expiresAt: new Date(Date.now() + 60_000).toISOString() }); store.approve(approval.approvalId, 'human');
+    }
     const input = mutate({ store, approval, req }); const result = await runtime.executeTool(input.request || req, { approvalId: input.approvalId });
     assert.equal(result.status, 'blocked'); assert.equal(counter.calls, 0);
   });
