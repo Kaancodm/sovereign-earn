@@ -20,7 +20,7 @@ test("canonical staging run completes review and payout preparation without paym
   registerTool({ skillId: payout.SKILL_ID, capability: payout.CAPABILITY, action: payout.ACTION, execute: async ({ calculation, beneficiaryId, currency }) => payout.preparePayout(calculation, { beneficiaryId, currency }) });
 
   const runId = "earn.review_and_prepare_payout_demo";
-  const contextManifest = { contextVersion: "1.0.0", architectureVersion: "1.0.0", policyVersion: "1.0.0", flowVersion: "1.0.0", workspaceMapVersion: "1.0.0", runId, agentId, sessionId: "staging-session-1", dataClassification: "internal" };
+  const contextManifest = { contextVersion: "1.0.0", architectureVersion: "1.0.0", policyVersion: "1.0.0", flowVersion: "1.0.0", workspaceMapVersion: "1.0.0", runId, agentId, sessionId: "staging-session-1", sessionMode: "prepare_payout", dataClassification: { snapshot: "model_restricted" } };
   const governanceContext = { identity: { userId: "staging-user", role: "user" }, sessionMode: "prepare_payout", scopes: [review.CAPABILITY, payout.CAPABILITY], budget: { limits: { toolCalls: 2 }, usage: { toolCalls: 0 } }, modeRules: { allowedRisks: ["read", "compute", "write"], allowExecution: false } };
   const audit = [];
   const trace = [];
