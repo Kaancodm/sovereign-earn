@@ -1,31 +1,47 @@
-const { randomUUID } = require('node:crypto');
+"use strict";
+const { createHash, randomUUID } = require("node:crypto");
+const { APPROVAL_STATES } = require("./contracts");
+const STATES = Object.freeze({ PENDING: APPROVAL_STATES.PENDING, APPROVED: APPROVAL_STATES.APPROVED, REJECTED: APPROVAL_STATES.REJECTED, EXPIRED: APPROVAL_STATES.EXPIRED, CONSUMED: APPROVAL_STATES.CONSUMED });
 
-const STATES = Object.freeze({
-  PENDING: 'PENDING',
-  APPROVED: 'APPROVED',
-  REJECTED: 'REJECTED',
-});
+function canonicalize(value) {
+  if (value === null || typeof value !== "object") return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(canonicalize).join(",")}]`;
+  return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${canonicalize(value[key])}`).join(",")}}`;
+}
+function hashArgs(args = {}) { return createHash("sha256").update(canonicalize(args)).digest("hex"); }
 
-const TRANSITIONS = Object.freeze({
-  PENDING: new Set(['APPROVED', 'REJECTED']),
-  APPROVED: new Set(),
-  REJECTED: new Set(),
-});
-
-function createApproval({ runId, agentId, capability, action }) {
-  if (!runId) throw new Error('runId is required');
-  if (!agentId) throw new Error('agentId is required');
-  if (!capability) throw new Error('capability is required');
-  if (!action) throw new Error('action is required');
-
-  return { id: randomUUID(), runId, agentId, capability, action, state: STATES.PENDING };
+function createApproval({ runId, agentId, toolCallId, skillId, capability, action, args, requestedBy, expiresAt }) {
+  for (const [field, value] of Object.entries({ runId, agentId, toolCallId, skillId, capability, action, requestedBy })) if (!value) throw new Error(`${field} is required`);
+  if (!expiresAt || Number.isNaN(Date.parse(expiresAt))) throw new Error("expiresAt is required");
+  return Object.freeze({ approvalId: randomUUID(), runId, agentId, toolCallId, skillId, capability, action, argsHash: hashArgs(args), requestedBy, approvedBy: null, state: STATES.PENDING, expiresAt, consumedAt: null });
+}
+function approveApproval(approval, approvedBy) {
+  if (!approvedBy) throw new Error("approvedBy is required");
+  if (approval?.state !== STATES.PENDING) throw new Error(`invalid approval transition: ${approval?.state} -> ${STATES.APPROVED}`);
+  if (Date.parse(approval.expiresAt) <= Date.now()) return Object.freeze({ ...approval, state: STATES.EXPIRED });
+  return Object.freeze({ ...approval, approvedBy, state: STATES.APPROVED });
+}
+function rejectApproval(approval) {
+  if (approval?.state !== STATES.PENDING) throw new Error(`invalid approval transition: ${approval?.state} -> ${STATES.REJECTED}`);
+  return Object.freeze({ ...approval, state: STATES.REJECTED });
 }
 
-function transitionApproval(approval, nextState) {
-  if (!TRANSITIONS[approval?.state]?.has(nextState)) {
-    throw new Error(`invalid approval transition: ${approval?.state} -> ${nextState}`);
+class ApprovalStore {
+  #approvals = new Map();
+  create(input) { const approval = createApproval(input); this.#approvals.set(approval.approvalId, approval); return approval; }
+  get(approvalId) { return this.#approvals.get(approvalId); }
+  approve(approvalId, approvedBy) { const current = this.#approvals.get(approvalId); if (!current) throw new Error("unknown approval"); const next = approveApproval(current, approvedBy); this.#approvals.set(approvalId, next); return next; }
+  reject(approvalId) { const current = this.#approvals.get(approvalId); if (!current) throw new Error("unknown approval"); const next = rejectApproval(current); this.#approvals.set(approvalId, next); return next; }
+  assertUsable({ approvalId, request }) {
+    const approval = this.#approvals.get(approvalId);
+    if (!approval) throw new Error("unknown approval");
+    if (approval.state !== STATES.APPROVED) throw new Error("approval is not approved");
+    if (Date.parse(approval.expiresAt) <= Date.now()) { this.#approvals.set(approvalId, Object.freeze({ ...approval, state: STATES.EXPIRED })); throw new Error("approval is expired"); }
+    const exact = ["runId", "agentId", "toolCallId", "skillId", "capability", "action"].every((field) => approval[field] === request[field]);
+    if (!exact || approval.argsHash !== hashArgs(request.args)) throw new Error("approval is not bound to this exact request");
+    return approval;
   }
-  return Object.freeze({ ...approval, state: nextState });
+  consume(approvalId) { const current = this.#approvals.get(approvalId); if (!current || current.state !== STATES.APPROVED) throw new Error("approval is not consumable"); const next = Object.freeze({ ...current, state: STATES.CONSUMED, consumedAt: new Date().toISOString() }); this.#approvals.set(approvalId, next); return next; }
 }
 
-module.exports = { STATES, createApproval, transitionApproval };
+module.exports = { STATES, hashArgs, createApproval, approveApproval, rejectApproval, ApprovalStore };
