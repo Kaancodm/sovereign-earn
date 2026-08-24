@@ -36,6 +36,7 @@ class ToolRuntime {
     if (approvalId) {
       const candidate = this.approvalStore.get(approvalId);
       if (candidate?.source === APPROVAL_SOURCES.CO_PILOT_OVERRIDE) {
+        if (candidate.approvedBy !== actorId) return this.deny(request, "co_pilot_approval_actor_mismatch");
         try {
           authoritativeApproval = this.approvalStore.assertUsable({ approvalId, request });
         } catch (error) {
