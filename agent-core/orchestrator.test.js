@@ -3,28 +3,11 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
 const { Orchestrator } = require("./orchestrator.js");
-const {
-  registerAgent,
-  registerSkill,
-  registerTool,
-  clearRegistriesForTests,
-} = require("./registry.js");
+const { registerAgent, registerSkill, registerTool, clearRegistriesForTests } = require("./registry.js");
 
 const RULES = [
-  {
-    agentId: "headcoder",
-    skillId: "repository.read",
-    capability: "github",
-    action: "read_repository",
-    decision: "allow",
-  },
-  {
-    agentId: "partnership",
-    skillId: "account.outreach",
-    capability: "mail",
-    action: "send",
-    decision: "approval_required",
-  },
+  { agentId: "headcoder", skillId: "repository.read", capability: "github", action: "read_repository", decision: "allow" },
+  { agentId: "partnership", skillId: "account.outreach", capability: "mail", action: "send", decision: "approval_required" },
 ];
 
 test.beforeEach(() => {
@@ -73,7 +56,7 @@ test("co-pilot override creates an exact, expiring approval", () => {
   const orchestrator = new Orchestrator({ policyRules: [{ agentId: "video-agent", skillId: "video.publish", capability: "tiktok", action: "upload", decision: "deny" }] });
   const request = { runId: "run-video", toolCallId: "call-video", agentId: "video-agent", skillId: "video.publish", capability: "tiktok", action: "upload", args: { videoUrl: "https://example.invalid/video.mp4" } };
   const result = orchestrator.coPilotOverride({ actorId: "co-pilot", toolRequest: request, reason: "Urgent launch" });
-  assert.equal(result.approval.state, "APPROVED");
+  assert.equal(result.approval.state, "approved");
   assert.equal(result.approval.source, "co_pilot_override");
   assert.equal(result.approval.runId, request.runId);
   assert.equal(result.approval.toolCallId, request.toolCallId);
