@@ -7,8 +7,8 @@ function createApprovalAdapter({ orchestrator }) {
     list() { return store.list(); },
     listByRun(runId) { return store.listByRun(runId); },
     get(approvalId) { return store.get(approvalId); },
-    approve(approvalId, actorId) { return store.approve(approvalId, actorId); },
-    reject(approvalId) { return store.reject(approvalId); },
+    approve(approvalId, actorId) { return orchestrator.approve(approvalId, actorId); },
+    reject(approvalId, actorId) { return orchestrator.reject(approvalId, actorId); },
     coPilotOverride(input) { return orchestrator.coPilotOverride(input); },
   });
 }
