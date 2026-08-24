@@ -10,6 +10,8 @@
     "test": "node scripts/syntax-check.js",
     "check": "node scripts/syntax-check.js && node scripts/staging-check.js",
     "check:staging": "node scripts/staging-check.js",
-    "test:agent-core": "node --test agent-core/*.test.js"
+    "check:agent-staging": "node scripts/agent-staging-gate.js",
+    "test:agent-core": "node --test agent-core/*.test.js",
+    "test:release": "node --test scripts/agent-staging-gate.test.js"
   }
 }
