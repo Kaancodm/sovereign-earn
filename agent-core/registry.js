@@ -11,5 +11,6 @@ function listSkills() { return [...skills.values()]; }
 function toolKey(skillId, capability, action) { return `${skillId}\0${capability}\0${action}`; }
 function registerTool(tool) { if (!tool?.skillId || !tool?.capability || !tool?.action || typeof tool.execute !== "function") throw new Error("tool requires skillId, capability, action, and execute"); const key = toolKey(tool.skillId, tool.capability, tool.action); if (tools.has(key)) throw new Error(`tool already registered: ${key}`); tools.set(key, Object.freeze({ ...tool })); return tools.get(key); }
 function resolveTool(skillId, capability, action) { return tools.get(toolKey(skillId, capability, action)) || null; }
+function listTools() { return [...tools.values()]; }
 function clearRegistriesForTests() { agents.clear(); skills.clear(); tools.clear(); }
-module.exports = { registerAgent, getAgent, listAgents, registerSkill, getSkill, listSkills, registerTool, resolveTool, clearRegistriesForTests };
+module.exports = { registerAgent, getAgent, listAgents, registerSkill, getSkill, listSkills, registerTool, resolveTool, listTools, clearRegistriesForTests };
