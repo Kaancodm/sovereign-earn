@@ -11,7 +11,9 @@
     "check": "node scripts/syntax-check.js && node scripts/staging-check.js",
     "check:staging": "node scripts/staging-check.js",
     "check:agent-staging": "node scripts/agent-staging-gate.js",
+    "check:release-candidate": "node scripts/release-candidate-check.js",
+    "check:release-promotion": "node scripts/release-candidate-check.js --require-browser-evidence",
     "test:agent-core": "node --test agent-core/*.test.js",
-    "test:release": "node --test scripts/agent-staging-gate.test.js"
+    "test:release": "node --test scripts/agent-staging-gate.test.js scripts/release-candidate-check.test.js"
   }
 }

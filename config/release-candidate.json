@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "product": "sovereign-agent-tool",
+  "releaseLine": "staging",
+  "candidate": "121-140",
+  "sourceOfTruth": "git",
+  "executionBoundary": "agent-core/tool-runtime",
+  "browserEvidence": {
+    "status": "BLOCKED",
+    "requiredForPromotion": true,
+    "reason": "Real browser evidence has not been captured in this environment."
+  },
+  "requiredEvidence": [
+    "operator-dashboard-visible",
+    "approval-action-visible",
+    "execution-result-visible",
+    "audit-id-visible",
+    "blocked-policy-state-visible",
+    "mobile-layout-checked"
+  ],
+  "promotionPolicy": "fail-closed"
+}
