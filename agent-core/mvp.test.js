@@ -13,9 +13,22 @@ function setup() {
   registerTool({ skillId: "demo", capability: "safe", action: "echo", execute: async (args) => args });
 }
 
+const ALLOW_ECHO = [{
+  agentId: "worker",
+  skillId: "demo",
+  capability: "safe",
+  action: "echo",
+  decision: "allow",
+}];
+
 test("MVP facade starts a run and executes a registered tool", async () => {
   setup();
-  const mvp = new SovereignAgentToolMVP();
+  const mvp = new SovereignAgentToolMVP({
+    orchestrator: undefined,
+    runtime: undefined,
+  });
+  mvp.orchestrator.policyRules = [...ALLOW_ECHO];
+  mvp.runtime.policyRules = Object.freeze([...ALLOW_ECHO]);
   const run = mvp.start({ agentId: "worker", skillId: "demo", input: { prompt: "hello" } });
   assert.equal(run.agentId, "worker");
 
