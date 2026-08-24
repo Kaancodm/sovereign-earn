@@ -3,11 +3,14 @@
 const { randomUUID } = require("node:crypto");
 const { Orchestrator } = require("./orchestrator");
 const { ToolRuntime } = require("./tool-runtime");
+const { OperatorSurface } = require("./operator");
+const { discoverTools, describeTool } = require("./tool-catalog");
 
 class SovereignAgentToolMVP {
   constructor({ orchestrator = new Orchestrator(), runtime = new ToolRuntime() } = {}) {
     this.orchestrator = orchestrator;
     this.runtime = runtime;
+    this.operator = new OperatorSurface({ approvalStore: orchestrator.approvalStore });
   }
 
   start({ agentId, skillId, taskId = randomUUID(), input = {} }) {
@@ -24,6 +27,26 @@ class SovereignAgentToolMVP {
 
   execute(request, options = {}) {
     return this.runtime.executeTool(request, options);
+  }
+
+  discover({ skillId, capability } = {}) {
+    return discoverTools({ skillId, capability });
+  }
+
+  describe({ skillId, capability, action }) {
+    return describeTool({ skillId, capability, action });
+  }
+
+  approvalStatus(approvalId) {
+    return this.operator.status(approvalId);
+  }
+
+  approve(approvalId, actorId) {
+    return this.operator.approve(approvalId, actorId);
+  }
+
+  reject(approvalId) {
+    return this.operator.reject(approvalId);
   }
 }
 
