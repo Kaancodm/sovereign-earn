@@ -4,9 +4,11 @@ on:
   push:
     branches:
       - agent-core-trust-boundary-hardening
+      - 'mvp/sovereign-agent-tool-*'
   pull_request:
     branches:
       - agent-core-trust-boundary-hardening
+      - 'mvp/sovereign-agent-tool-*'
 
 jobs:
   agent-core:
