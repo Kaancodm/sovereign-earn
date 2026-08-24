@@ -18,15 +18,8 @@ class Orchestrator {
     const runId = randomUUID();
     const agent = getAgent(agentId);
     const skill = getSkill(skillId);
-
-    if (!agent || agent.active === false || !skill) {
-      this.auditLog.append(createAuditEvent({ runId, type: "run.start", actor: agentId ?? "unknown", outcome: "deny", metadata: { reason: "unknown_agent_or_skill", agentId, skillId } }));
-      throw new Error("unknown agent or skill");
-    }
-    if (!skill.allowedAgents?.includes(agentId)) {
-      this.auditLog.append(createAuditEvent({ runId, type: "run.start", actor: agentId, target: skillId, outcome: "deny", metadata: { reason: "agent_not_allowed_for_skill" } }));
-      throw new Error("agent is not allowed to execute skill");
-    }
+    if (!agent || agent.active === false || !skill) { this.auditLog.append(createAuditEvent({ runId, type: "run.start", actor: agentId ?? "unknown", outcome: "deny", metadata: { reason: "unknown_agent_or_skill", agentId, skillId } })); throw new Error("unknown agent or skill"); }
+    if (!skill.allowedAgents?.includes(agentId)) { this.auditLog.append(createAuditEvent({ runId, type: "run.start", actor: agentId, target: skillId, outcome: "deny", metadata: { reason: "agent_not_allowed_for_skill" } })); throw new Error("agent is not allowed to execute skill"); }
     this.auditLog.append(createAuditEvent({ runId, type: "run.start", actor: agentId, target: skillId, outcome: "allow", metadata: { taskId, inputKeys: Object.keys(input) } }));
     return Object.freeze({ runId, taskId, agentId, skillId, input });
   }
@@ -35,6 +28,18 @@ class Orchestrator {
     const result = evaluateToolAccess({ agentId, skillId, capability, action }, this.policyRules);
     this.auditLog.append(createAuditEvent({ runId, type: "tool.authorization", actor: agentId, target: `${capability}:${action}`, outcome: result.decision, metadata: { skillId, reason: result.reason } }));
     return Object.freeze({ decision: result.decision, reason: result.reason });
+  }
+
+  approve(approvalId, actorId) {
+    const approval = this.approvalStore.approve(approvalId, actorId);
+    this.auditLog.append(createAuditEvent({ runId: approval.runId, type: "approval.approved", actor: actorId, target: approval.toolCallId, outcome: "allow", metadata: { approvalId } }));
+    return approval;
+  }
+
+  reject(approvalId, actorId) {
+    const approval = this.approvalStore.reject(approvalId);
+    this.auditLog.append(createAuditEvent({ runId: approval.runId, type: "approval.rejected", actor: actorId, target: approval.toolCallId, outcome: "deny", metadata: { approvalId } }));
+    return approval;
   }
 
   coPilotOverride({ actorId, toolRequest, reason, expiresInMs = 5 * 60 * 1000 }) {
@@ -50,28 +55,8 @@ class Orchestrator {
     if (!tool) throw new Error("unknown or unauthorized tool");
     if (!request.runId || !request.toolCallId) throw new Error("runId and toolCallId are required");
     if (!Number.isFinite(expiresInMs) || expiresInMs <= 0) throw new Error("expiresInMs must be positive");
-
-    const approval = this.approvalStore.createCoPilotOverride({
-      runId: request.runId,
-      agentId: request.agentId,
-      toolCallId: request.toolCallId,
-      skillId: request.skillId,
-      capability: request.capability,
-      action: request.action,
-      args: request.args,
-      expiresAt: new Date(Date.now() + expiresInMs).toISOString(),
-      reason: reason.trim(),
-    }, this.coPilotAgentId);
-
-    this.auditLog.append(createAuditEvent({
-      runId: request.runId,
-      type: "co_pilot.override",
-      actor: this.coPilotAgentId,
-      target: `${request.skillId}:${request.capability}:${request.action}`,
-      outcome: "allow",
-      metadata: { approvalId: approval.approvalId, toolCallId: request.toolCallId, argsHash: approval.argsHash, reason: approval.reason },
-    }));
-
+    const approval = this.approvalStore.createCoPilotOverride({ runId: request.runId, agentId: request.agentId, toolCallId: request.toolCallId, skillId: request.skillId, capability: request.capability, action: request.action, args: request.args, expiresAt: new Date(Date.now() + expiresInMs).toISOString(), reason: reason.trim() }, this.coPilotAgentId);
+    this.auditLog.append(createAuditEvent({ runId: request.runId, type: "co_pilot.override", actor: this.coPilotAgentId, target: `${request.skillId}:${request.capability}:${request.action}`, outcome: "allow", metadata: { approvalId: approval.approvalId, toolCallId: request.toolCallId, argsHash: approval.argsHash, reason: approval.reason } }));
     return Object.freeze({ approvalId: approval.approvalId, approval });
   }
 }
