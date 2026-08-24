@@ -44,7 +44,7 @@ test("approval belongs to another toolCallId is denied", async () => {
 
 test("arguments changed after approval are denied", async () => {
   setup(); const spy = toolSpy(); registerTool(spy.tool); const store = new ApprovalStore();
-  const approval = store.create({ ...BASE, requestedBy: "headcoder", expiresAt: new Date(Date.now() + 60_000).toISOString() }); store.approve(approval.approvalId, "human");
+  const approval = store.create({ ...BASE, toolCallId: "tool-1", requestedBy: "headcoder", expiresAt: new Date(Date.now() + 60_000).toISOString() }); store.approve(approval.approvalId, "human");
   const runtime = new ToolRuntime({ policyRules: policyApproval(), approvalStore: store, audit: new AuditLog() });
   const result = await runtime.executeTool(freshRequest({ args: { scope: "different" } }), { approvalId: approval.approvalId });
   assert.equal(result.status, "blocked"); assert.equal(spy.calls, 0);
@@ -52,7 +52,7 @@ test("arguments changed after approval are denied", async () => {
 
 test("approval is single-use", async () => {
   setup(); const spy = toolSpy(); registerTool(spy.tool); const store = new ApprovalStore();
-  const approval = store.create({ ...BASE, requestedBy: "headcoder", expiresAt: new Date(Date.now() + 60_000).toISOString() }); store.approve(approval.approvalId, "human");
+  const approval = store.create({ ...BASE, toolCallId: "tool-1", requestedBy: "headcoder", expiresAt: new Date(Date.now() + 60_000).toISOString() }); store.approve(approval.approvalId, "human");
   const runtime = new ToolRuntime({ policyRules: policyApproval(), approvalStore: store, audit: new AuditLog() });
   const first = await runtime.executeTool(freshRequest(), { approvalId: approval.approvalId }); const second = await runtime.executeTool(freshRequest(), { approvalId: approval.approvalId });
   assert.equal(first.status, "executed"); assert.equal(second.status, "blocked"); assert.equal(spy.calls, 1);
@@ -60,7 +60,7 @@ test("approval is single-use", async () => {
 
 test("expired approval is denied", async () => {
   setup(); const spy = toolSpy(); registerTool(spy.tool); const store = new ApprovalStore();
-  const approval = store.create({ ...BASE, requestedBy: "headcoder", expiresAt: new Date(Date.now() - 1_000).toISOString() });
+  const approval = store.create({ ...BASE, toolCallId: "tool-1", requestedBy: "headcoder", expiresAt: new Date(Date.now() - 1_000).toISOString() });
   const runtime = new ToolRuntime({ policyRules: policyApproval(), approvalStore: store, audit: new AuditLog() });
   const result = await runtime.executeTool(freshRequest(), { approvalId: approval.approvalId });
   assert.equal(result.status, "blocked"); assert.equal(spy.calls, 0);
