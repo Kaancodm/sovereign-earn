@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Sovereign Agent Tool — Operator Command Center</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">SOVEREIGN AGENT TOOL</p>
+        <h1>Operator Command Center</h1>
+      </div>
+      <div class="top-actions">
+        <span class="pill safe">AUDIT ONLINE</span>
+        <span class="pill">Co-Pilot: ONLINE</span>
+        <button class="ghost" data-action="focus-approval">Approval öffnen</button>
+      </div>
+    </header>
+
+    <section class="kpis" aria-label="Übersicht">
+      <article><span>Active Runs</span><strong>12</strong></article>
+      <article class="attention"><span>Pending Approvals</span><strong>3</strong></article>
+      <article><span>Completed</span><strong>7</strong></article>
+      <article class="danger"><span>Blocked</span><strong>2</strong></article>
+      <article class="safe-card"><span>Trust / Audit</span><strong>100%</strong></article>
+    </section>
+
+    <section class="workspace">
+      <article class="panel run-panel">
+        <div class="panel-head"><div><span class="eyebrow">RUN CONTROL</span><h2>Run #RUN-2026-08-24-001</h2></div><span class="status running">RUNNING</span></div>
+        <dl class="facts">
+          <div><dt>Agent</dt><dd>ResearchAgent</dd></div>
+          <div><dt>Skill</dt><dd>web-research</dd></div>
+          <div><dt>Next tool</dt><dd>web_search</dd></div>
+          <div><dt>Risk</dt><dd class="risk">MEDIUM</dd></div>
+          <div><dt>Estimated cost</dt><dd>$0.0012</dd></div>
+        </dl>
+        <div class="timeline">
+          <div class="done"><span>1</span><p>Run started</p></div>
+          <div class="done"><span>2</span><p>Tool discovered</p></div>
+          <div class="current"><span>3</span><p>Approval requested</p></div>
+          <div><span>4</span><p>Execution</p></div>
+          <div><span>5</span><p>Result + Audit</p></div>
+        </div>
+      </article>
+
+      <article class="panel approval" id="approval">
+        <div class="panel-head"><div><span class="eyebrow">OPERATOR DECISION</span><h2>Approval erforderlich</h2></div><span class="status pending">PENDING</span></div>
+        <div class="callout"><strong>web_search</strong><span>read · external web</span></div>
+        <div class="codebox"><div><span>action</span><b>execute</b></div><div><span>query</span><b>"latest AI governance"</b></div><div><span>limit</span><b>5</b></div></div>
+        <div class="policy"><span>Policy</span><strong>Allowed with operator approval</strong><small>Audit context is attached to this decision.</small></div>
+        <div class="approval-actions">
+          <button class="reject" data-action="reject">ABLEHNEN</button>
+          <button class="override" data-action="override">CO-PILOT OVERRIDE</button>
+          <button class="approve" data-action="approve">GENEHMIGEN</button>
+        </div>
+      </article>
+
+      <aside class="rail">
+        <article class="panel trust">
+          <div class="panel-head"><div><span class="eyebrow">TRUST BOUNDARY</span><h2>Fail-Closed</h2></div><span class="status safe">OK</span></div>
+          <ol class="boundary"><li>Orchestrator</li><li>Policy / Approval</li><li>ToolRuntime</li><li>Registry</li><li>Tool</li></ol>
+          <p>Keine direkte Ausführung. Der Co-Pilot ist der einzige bewusste Override-Pfad.</p>
+        </article>
+        <article class="panel release">
+          <span class="eyebrow">RELEASE GATE</span>
+          <h2>STAGING CANDIDATE</h2>
+          <p>CI und Audit-Integrität müssen vor dem Release grün sein.</p>
+        </article>
+      </aside>
+    </section>
+
+    <section class="panel result">
+      <div class="panel-head"><div><span class="eyebrow">EXECUTION RESULT</span><h2>Result + Audit ID</h2></div><span class="status success">SUCCESS</span></div>
+      <div class="result-grid"><div><span>Result</span><strong>5 sources returned</strong></div><div><span>Audit ID</span><strong id="audit-id">AUD-8F31-2049</strong></div><div><span>Duration</span><strong>1.24s</strong></div><div><span>Trace</span><strong>Policy → Runtime → Tool</strong></div></div>
+    </section>
+
+    <nav class="e2e" aria-label="E2E flow">
+      <span class="active">Run</span><span>→</span><span>Discover</span><span>→</span><span>Approval</span><span>→</span><span>Execute</span><span>→</span><span>Result</span><span>→</span><span>Audit</span>
+    </nav>
+  </main>
+  <script src="./app.js"></script>
+</body>
+</html>
