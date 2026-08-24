@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Sovereign Agent Tool Release Evidence",
+  "type": "object",
+  "required": ["releaseSha", "ci", "browserQa", "operatorSmoke", "rollback"],
+  "properties": {
+    "releaseSha": { "type": "string", "minLength": 7 },
+    "ci": { "type": "object", "required": ["agentCore", "qualityGates"], "properties": { "agentCore": { "type": "boolean" }, "qualityGates": { "type": "boolean" } } },
+    "browserQa": { "type": "object", "required": ["verified"], "properties": { "verified": { "type": "boolean" }, "evidenceUrl": { "type": "string" } } },
+    "operatorSmoke": { "type": "boolean" },
+    "rollback": { "type": "object", "required": ["verified"], "properties": { "verified": { "type": "boolean" }, "rollbackSha": { "type": "string" } } }
+  }
+}
