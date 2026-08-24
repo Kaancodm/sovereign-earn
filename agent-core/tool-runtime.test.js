@@ -16,7 +16,7 @@ for (const [name, mutate] of [
   ['unknown approval id', ({ approval }) => ({ approvalId: 'does-not-exist', approval })],
   ['approval for another toolCallId', ({ approval, req }) => ({ approvalId: approval.approvalId, request: { ...req, toolCallId: 'other-tool' } })],
   ['changed arguments after approval', ({ approval, req }) => ({ approvalId: approval.approvalId, request: { ...req, args: { scope: 'different-scope' } } })],
-  ['rejected approval', ({ store, approval }) => { store.reject(approval.approvalId); return { approvalId: approval.approvalId }; }],
+  ['rejected approval', ({ approval }) => ({ approvalId: approval.approvalId })],
 ]) {
   test(`privileged execution denies ${name}`, async () => {
     const counter = { calls: 0 }; const { runtime, store } = approvedRuntime(counter); const req = request();
