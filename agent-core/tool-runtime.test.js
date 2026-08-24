@@ -20,7 +20,8 @@ for (const [name, mutate] of [
 ]) {
   test(`privileged execution denies ${name}`, async () => {
     const counter = { calls: 0 }; const { runtime, store } = approvedRuntime(counter); const req = request();
-    const approval = store.create({ ...req, requestedBy: 'headcoder', expiresAt: new Date(Date.now() + 60_000).toISOString() }); store.approve(approval.approvalId, 'human');
+    const approval = store.create({ ...req, requestedBy: 'headcoder', expiresAt: new Date(Date.now() + 60_000).toISOString() });
+    if (name === 'rejected approval') store.reject(approval.approvalId); else store.approve(approval.approvalId, 'human');
     const input = mutate({ store, approval, req }); const result = await runtime.executeTool(input.request || req, { approvalId: input.approvalId });
     assert.equal(result.status, 'blocked'); assert.equal(counter.calls, 0);
   });
