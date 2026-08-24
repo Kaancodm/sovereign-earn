@@ -1,7 +1,7 @@
 "use strict";
 const { evaluateToolAccess, DECISIONS } = require("./policy");
 const { getAgent, getSkill, resolveTool } = require("./registry");
-const { ApprovalStore } = require("./approval");
+const { ApprovalStore, APPROVAL_SOURCES } = require("./approval");
 const { AuditLog, createAuditEvent } = require("./audit");
 
 class ToolRuntime {
@@ -32,10 +32,26 @@ class ToolRuntime {
     const skill = getSkill(request.skillId);
     if (!skill || !skill.allowedAgents?.includes(request.agentId)) return this.deny(request, "skill_not_registered_for_agent");
 
-    const policyDecision = evaluateToolAccess(request, this.policyRules);
+    let authoritativeApproval = null;
+    if (approvalId) {
+      const candidate = this.approvalStore.get(approvalId);
+      if (candidate?.source === APPROVAL_SOURCES.CO_PILOT_OVERRIDE) {
+        try {
+          authoritativeApproval = this.approvalStore.assertUsable({ approvalId, request });
+        } catch (error) {
+          return this.deny(request, `approval_denied:${error.message}`);
+        }
+      }
+    }
+
+    const evaluatedPolicy = evaluateToolAccess(request, this.policyRules);
+    const policyDecision = authoritativeApproval
+      ? Object.freeze({ decision: DECISIONS.ALLOW, allowed: true, requiresApproval: false, privileged: true, reason: `co_pilot_override:${authoritativeApproval.reason || "authorized"}`, overriddenDecision: evaluatedPolicy.decision })
+      : evaluatedPolicy;
+
     if (policyDecision.decision === DECISIONS.DENY || !policyDecision.allowed) return this.deny(request, policyDecision.reason);
 
-    let approval = null;
+    let approval = authoritativeApproval;
     if (policyDecision.requiresApproval) {
       try { approval = this.approvalStore.assertUsable({ approvalId, request }); }
       catch (error) { return this.deny(request, `approval_denied:${error.message}`); }
@@ -45,15 +61,20 @@ class ToolRuntime {
     if (!tool) return this.deny(request, "unknown_or_unauthorized_tool");
 
     try {
-      await this.record(createAuditEvent({ runId: request.runId, type: "tool.executing", actor: actorId, target: `${request.skillId}:${request.capability}:${request.action}`, outcome: "allow" }));
+      await this.record(createAuditEvent({
+        runId: request.runId,
+        type: "tool.executing",
+        actor: actorId,
+        target: `${request.skillId}:${request.capability}:${request.action}`,
+        outcome: "allow",
+        metadata: authoritativeApproval ? { approvalId: authoritativeApproval.approvalId, approvalSource: authoritativeApproval.source, overriddenDecision: evaluatedPolicy.decision } : {},
+      }));
     } catch (error) {
       if (policyDecision.privileged || policyDecision.requiresApproval) return this.deny(request, "audit_failed_before_execution");
       throw error;
     }
 
-    // Consume before dispatch. This makes approval one-shot even across crashes/retries;
-    // a failed tool call therefore requires a fresh approval rather than permitting an
-    // automatic retry against the same privileged authorization.
+    // Consume before dispatch. This makes privileged approval one-shot even across crashes/retries.
     if (approval) this.approvalStore.consume(approval.approvalId);
 
     let result;
@@ -65,7 +86,7 @@ class ToolRuntime {
     }
 
     try {
-      await this.record(createAuditEvent({ runId: request.runId, type: "tool.succeeded", actor: actorId, target: request.action, outcome: "allow" }));
+      await this.record(createAuditEvent({ runId: request.runId, type: "tool.succeeded", actor: actorId, target: request.action, outcome: "allow", metadata: authoritativeApproval ? { approvalId: authoritativeApproval.approvalId, approvalSource: authoritativeApproval.source } : {} }));
     } catch (error) {
       if (policyDecision.privileged || policyDecision.requiresApproval) throw new Error(`audit failed after privileged execution: ${error.message}`);
       throw error;
