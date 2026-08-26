@@ -1,0 +1,49 @@
+name: Sovereign PostgreSQL Budget Tests
+
+on:
+  push:
+    branches:
+      - release-handover/agent-core-mvp
+  pull_request:
+    branches:
+      - main
+      - release-handover/agent-core-mvp
+
+jobs:
+  budget-ledger:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: sovereign
+          POSTGRES_PASSWORD: sovereign
+          POSTGRES_DB: sovereign_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U sovereign -d sovereign_test"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install dependencies
+        run: npm install --ignore-scripts
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: Apply approval and budget schemas
+        env:
+          PGPASSWORD: sovereign
+        run: |
+          psql -h 127.0.0.1 -U sovereign -d sovereign_test -f agent-core/sql/001-sovereign-approvals.sql
+          psql -h 127.0.0.1 -U sovereign -d sovereign_test -f agent-core/sql/002-sovereign-budgets.sql
+      - name: Run real PostgreSQL budget integration tests
+        env:
+          DATABASE_URL: postgresql://sovereign:sovereign@127.0.0.1:5432/sovereign_test
+        run: node --test agent-core/budget-ledger.integration.test.js
