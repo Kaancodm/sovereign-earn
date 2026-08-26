@@ -10,7 +10,7 @@
     "test": "node scripts/syntax-check.js",
     "check": "node scripts/syntax-check.js && node scripts/staging-check.js",
     "check:staging": "node scripts/staging-check.js",
-    "test:agent-core": "node --test agent-core/*.test.js --exclude agent-core/postgres-approval-store.integration.test.js",
+    "test:agent-core": "node --test agent-core/approval.test.js agent-core/concurrency.test.js agent-core/contracts.test.js agent-core/e2e.test.js agent-core/handoff.test.js agent-core/mvp.test.js agent-core/orchestrator.test.js agent-core/postgres-approval-store.test.js agent-core/tool-runtime.test.js",
     "test:agent-core-postgres": "node --test agent-core/postgres-approval-store.test.js",
     "test:agent-core-postgres-integration": "node --test agent-core/postgres-approval-store.integration.test.js"
   },
