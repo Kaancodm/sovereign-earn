@@ -1,10 +1,10 @@
 {
-  "schemaVersion": "1.1.0",
+  "schemaVersion": "1.2.0",
   "product": "Sovereign Agent Tool",
   "repository": "Kaancodm/sovereign-earn",
   "candidate": {
     "branch": "release-handover/agent-core-mvp",
-    "headCommit": "7a86615bd696c98cd14160e3249dee6079eee517",
+    "headCommit": "174b91e6de6fe0ceb5f5099f692f729e16d2737b",
     "baseBranch": "agent-core-trust-boundary-hardening"
   },
   "productionMain": {
@@ -28,9 +28,10 @@
     "unitTestsPassed": true,
     "integrationTestsPassed": true,
     "concurrencyTestsPassed": true,
-    "adversarialTestsPassed": false,
+    "adversarialTestsPassed": true,
     "ciGreenVerified": true,
     "postgresqlApprovalVerified": true,
+    "postgresqlAdversarialApprovalVerified": true,
     "postgresqlBudgetVerified": true,
     "stagingDeployed": false,
     "stagingVerified": false,
@@ -45,12 +46,12 @@
       "quality_gates",
       "postgresql_approval",
       "postgresql_approval_concurrency",
+      "postgresql_adversarial_approval",
       "postgresql_budget",
       "postgresql_budget_concurrency"
     ],
     "open": [
       "strict_compile",
-      "postgresql_adversarial_replay_mutation_identity_tests",
       "config_validation",
       "staging_deployed",
       "staging_verified",
