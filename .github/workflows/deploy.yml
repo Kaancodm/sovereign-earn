@@ -69,7 +69,9 @@ jobs:
         run: |
           set -euo pipefail
           firebase deploy --project "$FIREBASE_PROJECT_ID" --non-interactive --force \
-            --only functions:acceptCoachingRequest,functions:completeCoachingRequest,functions:declineCoachingRequest,functions:cancelCoachingRequest,functions:createCoachingRequest,functions:askBuildAdvisor,functions:updateSenseiProfile,functions:ensureUserProfile,functions:requestAccountDeletion,functions:healthCheck,functions:pollfishPostbackV2,functions:bitlabsPostbackV2
+            # Closed beta: deploy only non-financial functions.
+            # Coaching/escrow, offerwall postbacks, payouts and coin paths stay out of staging.
+            --only functions:askBuildAdvisor,functions:ensureUserProfile,functions:requestAccountDeletion,functions:healthCheck
       - name: Firestore Rules deployen
         env:
           FIREBASE_PROJECT_ID: ${{ inputs.firebase_project_id }}
