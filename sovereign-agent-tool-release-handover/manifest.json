@@ -1,15 +1,14 @@
 {
-  "schemaVersion": "1.0.0",
+  "schemaVersion": "1.1.0",
   "product": "Sovereign Agent Tool",
   "repository": "Kaancodm/sovereign-earn",
   "candidate": {
     "branch": "release-handover/agent-core-mvp",
-    "baseBranch": "agent-core-trust-boundary-hardening",
-    "baseCommit": "fb7ac56c08388cd8a934957746c58f5f0721ec8f"
+    "headCommit": "7a86615bd696c98cd14160e3249dee6079eee517",
+    "baseBranch": "agent-core-trust-boundary-hardening"
   },
   "productionMain": {
     "branch": "main",
-    "head": "59fe01a7df7f1d51dd2da3f9bba5e4e1d3b491cf",
     "agentCoreIncluded": false
   },
   "release": {
@@ -22,36 +21,41 @@
     "agentCoreModulesPresent": true,
     "agentCoreTestsPresent": true,
     "agentCoreTestCommand": "npm run test:agent-core",
-    "strictTypeScriptCompileVerified": false,
-    "postgresqlApprovalStorageVerified": false
+    "postgresqlApprovalStoragePresent": true,
+    "persistentBudgetBoundaryPresent": true
   },
   "verification": {
-    "unitTestsPassed": false,
-    "integrationTestsPassed": false,
-    "concurrencyTestsPassed": false,
+    "unitTestsPassed": true,
+    "integrationTestsPassed": true,
+    "concurrencyTestsPassed": true,
     "adversarialTestsPassed": false,
-    "ciGreenVerified": false,
+    "ciGreenVerified": true,
+    "postgresqlApprovalVerified": true,
+    "postgresqlBudgetVerified": true,
     "stagingDeployed": false,
     "stagingVerified": false,
     "securitySignoff": false
   },
   "gates": {
-    "requiredBeforeProduction": [
+    "passed": [
+      "agent_core_source_present",
+      "agent_core_tests_present",
+      "dedicated_agent_core_test_script_present",
+      "agent_core_ci",
+      "quality_gates",
+      "postgresql_approval",
+      "postgresql_approval_concurrency",
+      "postgresql_budget",
+      "postgresql_budget_concurrency"
+    ],
+    "open": [
       "strict_compile",
-      "unit_tests",
-      "integration_tests",
-      "concurrency_tests",
-      "adversarial_tests",
-      "ci_green",
+      "postgresql_adversarial_replay_mutation_identity_tests",
       "config_validation",
       "staging_deployed",
       "staging_verified",
+      "security_signoff",
       "production_approval"
-    ],
-    "currentlyPassed": [
-      "agent_core_source_present",
-      "agent_core_tests_present",
-      "dedicated_agent_core_test_script_present"
     ]
   },
   "disabledCapabilities": [
