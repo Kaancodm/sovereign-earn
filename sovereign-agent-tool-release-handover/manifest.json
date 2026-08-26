@@ -1,0 +1,63 @@
+{
+  "schemaVersion": "1.0.0",
+  "product": "Sovereign Agent Tool",
+  "repository": "Kaancodm/sovereign-earn",
+  "candidate": {
+    "branch": "release-handover/agent-core-mvp",
+    "baseBranch": "agent-core-trust-boundary-hardening",
+    "baseCommit": "fb7ac56c08388cd8a934957746c58f5f0721ec8f"
+  },
+  "productionMain": {
+    "branch": "main",
+    "head": "59fe01a7df7f1d51dd2da3f9bba5e4e1d3b491cf",
+    "agentCoreIncluded": false
+  },
+  "release": {
+    "status": "NOT_RELEASED",
+    "productionReady": false,
+    "stagingEvidenceVerified": false,
+    "productionApproval": false
+  },
+  "implementation": {
+    "agentCoreModulesPresent": true,
+    "agentCoreTestsPresent": true,
+    "agentCoreTestCommand": "npm run test:agent-core",
+    "strictTypeScriptCompileVerified": false,
+    "postgresqlApprovalStorageVerified": false
+  },
+  "verification": {
+    "unitTestsPassed": false,
+    "integrationTestsPassed": false,
+    "concurrencyTestsPassed": false,
+    "adversarialTestsPassed": false,
+    "ciGreenVerified": false,
+    "stagingDeployed": false,
+    "stagingVerified": false,
+    "securitySignoff": false
+  },
+  "gates": {
+    "requiredBeforeProduction": [
+      "strict_compile",
+      "unit_tests",
+      "integration_tests",
+      "concurrency_tests",
+      "adversarial_tests",
+      "ci_green",
+      "config_validation",
+      "staging_deployed",
+      "staging_verified",
+      "production_approval"
+    ],
+    "currentlyPassed": [
+      "agent_core_source_present",
+      "agent_core_tests_present",
+      "dedicated_agent_core_test_script_present"
+    ]
+  },
+  "disabledCapabilities": [
+    "autonomous_payout",
+    "destructive_self_delete",
+    "autonomous_external_upload"
+  ],
+  "releaseStatement": "REAL STAGING EVIDENCE NOT VERIFIED"
+}
