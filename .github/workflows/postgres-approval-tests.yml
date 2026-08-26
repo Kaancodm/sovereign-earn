@@ -35,6 +35,9 @@ jobs:
         with:
           node-version: "22"
 
+      - name: Install dependencies
+        run: npm install --ignore-scripts
+
       - name: Install PostgreSQL client
         run: sudo apt-get update && sudo apt-get install -y postgresql-client
 
@@ -43,16 +46,7 @@ jobs:
           PGPASSWORD: sovereign
         run: psql -h 127.0.0.1 -U sovereign -d sovereign_test -f agent-core/sql/001-sovereign-approvals.sql
 
-      - name: Install dependencies when lockfile exists
-        shell: bash
-        run: |
-          if [ -f package-lock.json ]; then
-            npm ci
-          else
-            echo "No package-lock.json present; skipping npm ci."
-          fi
-
-      - name: Run PostgreSQL approval integration tests
+      - name: Run real PostgreSQL approval integration tests
         env:
           DATABASE_URL: postgresql://sovereign:sovereign@127.0.0.1:5432/sovereign_test
-        run: npm run test:agent-core-postgres
+        run: npm run test:agent-core-postgres-integration
