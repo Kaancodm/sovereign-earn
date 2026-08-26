@@ -1,0 +1,32 @@
+name: Firebase Configuration Validation
+
+# PRs may validate Firebase configuration but must never deploy.
+on:
+  pull_request:
+    paths:
+      - ".firebaserc"
+      - "firebase.json"
+      - "firestore.rules"
+      - "functions/**"
+      - "scripts/staging-check.js"
+      - ".github/workflows/firebase-*.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate Firebase Hosting and Functions v2
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+      - name: Syntax checks
+        run: npm test
+      - name: Firebase configuration checks
+        run: npm run check:staging

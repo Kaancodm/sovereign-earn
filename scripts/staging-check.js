@@ -72,6 +72,36 @@ if (!fs.existsSync(path.join(ROOT, "firestore.rules"))) {
   console.log("  ✔ firestore.rules vorhanden");
 }
 
+// 5) Functions v2 manifest
+const functionsPackage = path.join(ROOT, "functions", "package.json");
+if (!fs.existsSync(functionsPackage)) {
+  errors.push("functions/package.json fehlt");
+} else {
+  const pkg = JSON.parse(fs.readFileSync(functionsPackage, "utf8"));
+  const node22 = pkg.engines && pkg.engines.node === "22";
+  const functionsV2 = pkg.dependencies && /^\^?7\./.test(pkg.dependencies["firebase-functions"] || "");
+  if (!node22) errors.push("functions/package.json: Node 22 ist nicht gesetzt");
+  if (!functionsV2) errors.push("functions/package.json: firebase-functions v7 (v2) fehlt");
+  if (node22 && functionsV2) console.log("  ✔ Functions: Node 22 + firebase-functions v7");
+}
+
+// 6) PR-Validierung darf prüfen, aber nie deployen
+const validationWorkflow = path.join(ROOT, ".github/workflows/firebase-validate.yml");
+if (!fs.existsSync(validationWorkflow)) {
+  errors.push(".github/workflows/firebase-validate.yml fehlt");
+} else {
+  const yml = fs.readFileSync(validationWorkflow, "utf8");
+  const isPrWorkflow = /pull_request/.test(yml);
+  const runsStagingCheck = /npm run check:staging/.test(yml);
+  const deploys = /firebase\s+deploy/.test(yml);
+  if (!isPrWorkflow) errors.push("firebase-validate.yml: fehlt 'pull_request'-Trigger");
+  if (!runsStagingCheck) errors.push("firebase-validate.yml: führt check:staging nicht aus");
+  if (deploys) errors.push("firebase-validate.yml: PR-Workflow darf nicht deployen");
+  if (isPrWorkflow && runsStagingCheck && !deploys) {
+    console.log("  ✔ PR-Workflow: validiert Firebase-Konfiguration ohne Deployment");
+  }
+}
+
 if (errors.length) {
   console.error("\n✘ Staging-Config-Fehler:");
   for (const e of errors) console.error("  - " + e);
