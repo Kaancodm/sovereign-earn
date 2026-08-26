@@ -1,0 +1,69 @@
+{
+  "schemaVersion": "1.2.1",
+  "product": "Sovereign Agent Tool",
+  "repository": "Kaancodm/sovereign-earn",
+  "candidate": {
+    "branch": "release-handover/agent-core-mvp",
+    "verifiedImplementationCommit": "174b91e6de6fe0ceb5f5099f692f729e16d2737b",
+    "productionBaseCommit": "59fe01a7df7f1d51dd2da3f9bba5e4e1d3b491cf",
+    "baseBranch": "agent-core-trust-boundary-hardening"
+  },
+  "productionMain": {
+    "branch": "main",
+    "agentCoreIncluded": false
+  },
+  "release": {
+    "status": "NOT_RELEASED",
+    "productionReady": false,
+    "stagingEvidenceVerified": false,
+    "productionApproval": false
+  },
+  "implementation": {
+    "agentCoreModulesPresent": true,
+    "agentCoreTestsPresent": true,
+    "agentCoreTestCommand": "npm run test:agent-core",
+    "postgresqlApprovalStoragePresent": true,
+    "persistentBudgetBoundaryPresent": true
+  },
+  "verification": {
+    "unitTestsPassed": true,
+    "integrationTestsPassed": true,
+    "concurrencyTestsPassed": true,
+    "adversarialTestsPassed": true,
+    "ciGreenVerified": true,
+    "postgresqlApprovalVerified": true,
+    "postgresqlAdversarialApprovalVerified": true,
+    "postgresqlBudgetVerified": true,
+    "stagingDeployed": false,
+    "stagingVerified": false,
+    "securitySignoff": false
+  },
+  "gates": {
+    "passed": [
+      "agent_core_source_present",
+      "agent_core_tests_present",
+      "dedicated_agent_core_test_script_present",
+      "agent_core_ci",
+      "quality_gates",
+      "postgresql_approval",
+      "postgresql_approval_concurrency",
+      "postgresql_adversarial_approval",
+      "postgresql_budget",
+      "postgresql_budget_concurrency"
+    ],
+    "open": [
+      "strict_compile",
+      "config_validation",
+      "staging_deployed",
+      "staging_verified",
+      "security_signoff",
+      "production_approval"
+    ]
+  },
+  "disabledCapabilities": [
+    "autonomous_payout",
+    "destructive_self_delete",
+    "autonomous_external_upload"
+  ],
+  "releaseStatement": "REAL STAGING EVIDENCE NOT VERIFIED"
+}
