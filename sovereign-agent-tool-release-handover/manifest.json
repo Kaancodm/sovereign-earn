@@ -1,10 +1,11 @@
 {
-  "schemaVersion": "1.2.0",
+  "schemaVersion": "1.2.1",
   "product": "Sovereign Agent Tool",
   "repository": "Kaancodm/sovereign-earn",
   "candidate": {
     "branch": "release-handover/agent-core-mvp",
-    "headCommit": "174b91e6de6fe0ceb5f5099f692f729e16d2737b",
+    "verifiedImplementationCommit": "174b91e6de6fe0ceb5f5099f692f729e16d2737b",
+    "productionBaseCommit": "59fe01a7df7f1d51dd2da3f9bba5e4e1d3b491cf",
     "baseBranch": "agent-core-trust-boundary-hardening"
   },
   "productionMain": {
