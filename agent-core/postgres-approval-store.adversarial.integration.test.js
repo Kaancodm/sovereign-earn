@@ -59,14 +59,14 @@ test("postgres rejects replay after approval has been consumed", async () => {
 test("postgres rejects argument mutation against approved args hash", async () => {
   await withDatabase(async (_client, store) => {
     const item = await seed(store, approval({ approvalId: "00000000-0000-4000-8000-000000000022" }));
-    await assert.rejects(() => store.assertUsable({ approvalId: item.approvalId, request: { runId: item.runId, agentId: item.agentId, toolCallId: item.toolCallId, skillId: item.skillId, capability: item.capability, action: item.action, args: { ...baseArgs, body: "MUTATED" } } }), /args hash mismatch/);
+    await assert.rejects(() => store.assertUsable({ approvalId: item.approvalId, request: { runId: item.runId, agentId: item.agentId, toolCallId: item.toolCallId, skillId: item.skillId, capability: item.capability, action: item.action, args: { ...baseArgs, body: "MUTATED" } } }), /not bound to this exact request/);
   });
 });
 
 test("postgres rejects identity substitution", async () => {
   await withDatabase(async (_client, store) => {
     const item = await seed(store, approval({ approvalId: "00000000-0000-4000-8000-000000000023" }));
-    await assert.rejects(() => store.assertUsable({ approvalId: item.approvalId, request: { runId: item.runId, agentId: "attacker-agent", toolCallId: item.toolCallId, skillId: item.skillId, capability: item.capability, action: item.action, args: baseArgs } }), /agentId mismatch/);
-    await assert.rejects(() => store.assertUsable({ approvalId: item.approvalId, request: { runId: "attacker-run", agentId: item.agentId, toolCallId: item.toolCallId, skillId: item.skillId, capability: item.capability, action: item.action, args: baseArgs } }), /runId mismatch/);
+    await assert.rejects(() => store.assertUsable({ approvalId: item.approvalId, request: { runId: item.runId, agentId: "attacker-agent", toolCallId: item.toolCallId, skillId: item.skillId, capability: item.capability, action: item.action, args: baseArgs } }), /not bound to this exact request/);
+    await assert.rejects(() => store.assertUsable({ approvalId: item.approvalId, request: { runId: "attacker-run", agentId: item.agentId, toolCallId: item.toolCallId, skillId: item.skillId, capability: item.capability, action: item.action, args: baseArgs } }), /not bound to this exact request/);
   });
 });
