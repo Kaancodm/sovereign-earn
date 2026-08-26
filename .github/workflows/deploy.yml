@@ -7,7 +7,6 @@ on:
       firebase_project_id:
         description: "Firebase-Projekt-ID für dieses Staging-Deployment"
         required: true
-        default: "sovereign-bdb76"
 
 jobs:
   check:
@@ -16,10 +15,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
-      - name: Setup Node.js 24
+      - name: Setup Node.js 22
         uses: actions/setup-node@v5
         with:
-          node-version: "24"
+          node-version: "22"
       - name: CI Checks
         run: |
           npm test
@@ -33,10 +32,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
-      - name: Setup Node.js 24
+      - name: Setup Node.js 22
         uses: actions/setup-node@v5
         with:
-          node-version: "24"
+          node-version: "22"
       - name: Firebase CLI installieren
         run: npm install -g firebase-tools@latest
       - name: Functions-Dependencies installieren
@@ -69,8 +68,7 @@ jobs:
           FIREBASE_PROJECT_ID: ${{ inputs.firebase_project_id }}
         run: |
           set -euo pipefail
-          firebase deploy --project "$FIREBASE_PROJECT_ID" --non-interactive --force \
-            --only functions:acceptCoachingRequest,functions:completeCoachingRequest,functions:declineCoachingRequest,functions:cancelCoachingRequest,functions:createCoachingRequest,functions:askBuildAdvisor,functions:updateSenseiProfile,functions:ensureUserProfile,functions:requestAccountDeletion,functions:healthCheck,functions:pollfishPostbackV2,functions:bitlabsPostbackV2
+          firebase deploy --project "$FIREBASE_PROJECT_ID" --non-interactive --force             --only functions:acceptCoachingRequest,functions:completeCoachingRequest,functions:declineCoachingRequest,functions:cancelCoachingRequest,functions:createCoachingRequest,functions:askBuildAdvisor,functions:updateSenseiProfile,functions:ensureUserProfile,functions:requestAccountDeletion,functions:healthCheck,functions:pollfishPostbackV2,functions:bitlabsPostbackV2
       - name: Firestore Rules deployen
         env:
           FIREBASE_PROJECT_ID: ${{ inputs.firebase_project_id }}
