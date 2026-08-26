@@ -4,9 +4,12 @@ on:
   push:
     branches:
       - agent-core-trust-boundary-hardening
+      - release-handover/agent-core-mvp
   pull_request:
     branches:
+      - main
       - agent-core-trust-boundary-hardening
+      - release-handover/agent-core-mvp
 
 jobs:
   agent-core:
