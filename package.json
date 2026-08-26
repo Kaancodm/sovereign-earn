@@ -10,6 +10,7 @@
     "test": "node scripts/syntax-check.js",
     "check": "node scripts/syntax-check.js && node scripts/staging-check.js",
     "check:staging": "node scripts/staging-check.js",
-    "test:agent-core": "node --test agent-core/*.test.js"
+    "test:agent-core": "node --test agent-core/*.test.js",
+    "test:agent-core-postgres": "node --test agent-core/postgres-approval-store.test.js"
   }
 }
