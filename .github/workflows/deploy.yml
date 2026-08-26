@@ -43,7 +43,7 @@ jobs:
         run: npm install
       - name: Firebase Authentifizierung vorbereiten
         env:
-          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          FIREBASE_SERVICE_ACCOUNT: \${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
         run: |
           set -euo pipefail
           SA="$RUNNER_TEMP/firebase-service-account.json"
@@ -52,7 +52,7 @@ jobs:
           echo "GOOGLE_APPLICATION_CREDENTIALS=$SA" >> "$GITHUB_ENV"
       - name: Firebase/IAM Preflight
         env:
-          FIREBASE_PROJECT_ID: ${{ inputs.firebase_project_id }}
+          FIREBASE_PROJECT_ID: \${{ inputs.firebase_project_id }}
         run: |
           set -euo pipefail
           echo "Prüfe Zugriff auf Cloud Functions für $FIREBASE_PROJECT_ID ..."
@@ -65,19 +65,20 @@ jobs:
           fi
       - name: Cloud Functions deployen
         env:
-          FIREBASE_PROJECT_ID: ${{ inputs.firebase_project_id }}
+          FIREBASE_PROJECT_ID: \${{ inputs.firebase_project_id }}
         run: |
           set -euo pipefail
-          firebase deploy --project "$FIREBASE_PROJECT_ID" --non-interactive --force             --only functions:acceptCoachingRequest,functions:completeCoachingRequest,functions:declineCoachingRequest,functions:cancelCoachingRequest,functions:createCoachingRequest,functions:askBuildAdvisor,functions:updateSenseiProfile,functions:ensureUserProfile,functions:requestAccountDeletion,functions:healthCheck,functions:pollfishPostbackV2,functions:bitlabsPostbackV2
+          firebase deploy --project "$FIREBASE_PROJECT_ID" --non-interactive --force \
+            --only functions:acceptCoachingRequest,functions:completeCoachingRequest,functions:declineCoachingRequest,functions:cancelCoachingRequest,functions:createCoachingRequest,functions:askBuildAdvisor,functions:updateSenseiProfile,functions:ensureUserProfile,functions:requestAccountDeletion,functions:healthCheck,functions:pollfishPostbackV2,functions:bitlabsPostbackV2
       - name: Firestore Rules deployen
         env:
-          FIREBASE_PROJECT_ID: ${{ inputs.firebase_project_id }}
+          FIREBASE_PROJECT_ID: \${{ inputs.firebase_project_id }}
         run: |
           set -euo pipefail
           firebase deploy --project "$FIREBASE_PROJECT_ID" --non-interactive --force --only firestore:rules
       - name: Hosting deployen
         env:
-          FIREBASE_PROJECT_ID: ${{ inputs.firebase_project_id }}
+          FIREBASE_PROJECT_ID: \${{ inputs.firebase_project_id }}
         run: |
           set -euo pipefail
           firebase deploy --project "$FIREBASE_PROJECT_ID" --non-interactive --force --only hosting
