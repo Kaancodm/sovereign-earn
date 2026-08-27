@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "name": "sovereign-agent-harness",
+  "defaultMode": "prepare",
+  "lifecycle": [
+    "IDEA",
+    "PLAN",
+    "BUILD",
+    "VERIFY",
+    "RELEASE",
+    "DEPLOY",
+    "OBSERVE"
+  ],
+  "governance": {
+    "executionAuthority": "agent-core",
+    "failClosed": true,
+    "requireAudit": true,
+    "requireApprovalForRisk": ["HIGH", "CRITICAL"],
+    "productionDeployRequiresExplicitApproval": true
+  },
+  "releaseGates": {
+    "tests": true,
+    "securityChecks": true,
+    "rollbackPlan": true,
+    "browserEvidenceWhenApplicable": true,
+    "deploymentEvidence": true
+  }
+}
