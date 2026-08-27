@@ -68,9 +68,9 @@ jobs:
           FIREBASE_PROJECT_ID: ${{ inputs.firebase_project_id }}
         run: |
           set -euo pipefail
+          # Closed beta: deploy only non-financial functions.
+          # Coaching/escrow, offerwall postbacks, payouts and coin paths stay out of staging.
           firebase deploy --project "$FIREBASE_PROJECT_ID" --non-interactive --force \
-            # Closed beta: deploy only non-financial functions.
-            # Coaching/escrow, offerwall postbacks, payouts and coin paths stay out of staging.
             --only functions:askBuildAdvisor,functions:ensureUserProfile,functions:requestAccountDeletion,functions:healthCheck
       - name: Firestore Rules deployen
         env:
